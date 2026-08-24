@@ -1,6 +1,4 @@
-import { Document, Types } from "mongoose";
-
- 
+import { Types } from "mongoose";
 
 export interface IUser extends Document {
   _id: Types.ObjectId;
@@ -9,11 +7,10 @@ export interface IUser extends Document {
 
   name: string;
 
-  avatar?: string | null;
+  avatar?: string | undefined;
 
-  bio?: string;
+  bio?: string | undefined;
 
-  
   isOnline: boolean;
 
   lastSeen?: Date | null;

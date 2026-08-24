@@ -2,26 +2,35 @@ import multer from "multer";
 
 const storage = multer.memoryStorage();
 
-export const upload = multer({
+const fileFilter: multer.Options["fileFilter"] = (
+  _req,
+  file,
+  cb,
+) => {
+  const allowedMimeTypes = [
+    "image/jpeg",
+    "image/jpg",
+    "image/png",
+    "image/webp",
+  ];
+
+  if (allowedMimeTypes.includes(file.mimetype)) {
+    cb(null, true);
+  } else {
+    cb(
+      new Error(
+        "Only JPG, JPEG, PNG and WEBP images are allowed",
+      ),
+    );
+  }
+};
+
+export const uploadAvatar = multer({
   storage,
+
+  fileFilter,
+
   limits: {
     fileSize: 5 * 1024 * 1024,
-  },
-  fileFilter: (
-    req,
-    file,
-    cb
-  ) => {
-    if (
-      file.mimetype.startsWith("image/")
-    ) {
-      cb(null, true);
-    } else {
-      cb(
-        new Error(
-          "Only image files are allowed"
-        )
-      );
-    }
   },
 });
