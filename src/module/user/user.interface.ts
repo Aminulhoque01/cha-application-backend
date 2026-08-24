@@ -1,21 +1,28 @@
-import { Types } from "mongoose";
+import { Document, Types } from "mongoose";
 
 export interface IUser extends Document {
   _id: Types.ObjectId;
 
   phone: string;
-
   name: string;
 
-  avatar?: string | undefined;
-
-  bio?: string | undefined;
+  avatar?: string | null;
+  bio?: string | null;
 
   isOnline: boolean;
-
   lastSeen?: Date | null;
 
   createdAt: Date;
-
   updatedAt: Date;
+}
+
+
+interface GetUsersQuery {
+  search?: string;
+  phone?: string;
+  isOnline?: boolean;
+  page?: number;
+  limit?: number;
+  sortBy?: "name" | "createdAt" | "updatedAt" | "lastSeen";
+  sortOrder?: "asc" | "desc";
 }

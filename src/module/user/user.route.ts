@@ -7,29 +7,85 @@ import {
   updateAvatar,
   updateProfile,
 } from "./user.controller";
-import { uploadAvatar } from "../../middleware/upload.middleware";
 
+import { uploadAvatar } from "../../middleware/upload.middleware";
+import { authMiddleware } from "../../middleware/auth.middleware";
  
 
-const router = Router();
+const userRouter = Router();
 
-// Get all users
-userRouter.get("/", getAllUser);
+/**
+ * Get all users
+ *
+ * GET /api/users
+ *
+ * Supports:
+ * ?search=rahim
+ * ?phone=017
+ * ?isOnline=true
+ * ?page=1
+ * ?limit=20
+ * ?sortBy=name
+ * ?sortOrder=asc
+ */
+userRouter.get(
+  "/",
+  getAllUser,
+);
 
-// Search users
-userRouter.get("/search", searchUser);
+/**
+ * Search users
+ *
+ * GET /api/users/search?query=rahim
+ */
+userRouter.get(
+  "/search",
+  searchUser,
+);
 
-// Get single user
-userRouter.get("/:id", getUserProfile);
+/**
+ * Get my profile
+ *
+ * GET /api/users/me
+ *
+ * Optional but recommended
+ */
+ 
 
-// Update profile
-userRouter.patch("/:id/profile", updateProfile);
-
-// Update avatar
+/**
+ * Update my profile
+ *
+ * PATCH /api/users/me/profile
+ */
 userRouter.patch(
-  "/:id/avatar",
+  "/me/profile",
+  authMiddleware,
+  updateProfile,
+);
+
+/**
+ * Update my avatar
+ *
+ * PATCH /api/users/me/avatar
+ *
+ * multipart/form-data
+ * field: avatar
+ */
+userRouter.patch(
+  "/me/avatar",
+  authMiddleware,
   uploadAvatar.single("avatar"),
   updateAvatar,
+);
+
+/**
+ * Get single user
+ *
+ * GET /api/users/:id
+ */
+userRouter.get(
+  "/:id",
+  getUserProfile,
 );
 
 export default userRouter;

@@ -1,26 +1,154 @@
 import { UserModel } from "./user.model";
 
-interface UpdateProfileData {
+export interface GetUsersQuery {
+  search?: string;
+  phone?: string;
+  isOnline?: boolean;
+
+  page?: number;
+  limit?: number;
+
+  sortBy?: "name" | "createdAt" | "updatedAt" | "lastSeen";
+  sortOrder?: "asc" | "desc";
+}
+
+export interface UpdateProfileData {
   name?: string;
   bio?: string;
 }
 
-export const getAllUsers = async () => {
-  const users = await UserModel.find()
-    .select("-__v")
-    .sort({
-      name: 1,
-    });
+/**
+ * Get all users
+ * Supports:
+ * - search
+ * - phone filter
+ * - online filter
+ * - pagination
+ * - sorting
+ */
+export const getAllUsers = async (query: GetUsersQuery = {}) => {
+  const {
+    search,
+    phone,
+    isOnline,
+    page = 1,
+    limit = 20,
+    sortBy = "name",
+    sortOrder = "asc",
+  } = query;
 
-  return users;
+  const filter: Record<string, unknown> = {};
+
+  /**
+   * Search by name or phone
+   */
+  if (search) {
+    filter.$or = [
+      {
+        name: {
+          $regex: search,
+          $options: "i",
+        },
+      },
+      {
+        phone: {
+          $regex: search,
+          $options: "i",
+        },
+      },
+    ];
+  }
+
+  /**
+   * Phone filter
+   */
+  if (phone) {
+    filter.phone = {
+      $regex: phone,
+      $options: "i",
+    };
+  }
+
+  /**
+   * Online/offline filter
+   */
+  if (typeof isOnline === "boolean") {
+    filter.isOnline = isOnline;
+  }
+
+  /**
+   * Pagination
+   */
+  const currentPage = Math.max(1, page);
+
+  const currentLimit = Math.min(
+    Math.max(1, limit),
+    100,
+  );
+
+  const skip =
+    (currentPage - 1) * currentLimit;
+
+  /**
+   * Sorting
+   */
+  const sort: Record<string, 1 | -1> = {
+    [sortBy]:
+      sortOrder === "desc" ? -1 : 1,
+  };
+
+  /**
+   * Query users + count together
+   */
+  const [users, total] = await Promise.all([
+    UserModel.find(filter)
+      .select("-__v")
+      .sort(sort)
+      .skip(skip)
+      .limit(currentLimit)
+      .lean(),
+
+    UserModel.countDocuments(filter),
+  ]);
+
+  const totalPages = Math.ceil(
+    total / currentLimit,
+  );
+
+  return {
+    users,
+
+    pagination: {
+      page: currentPage,
+      limit: currentLimit,
+      total,
+      totalPages,
+
+      hasNextPage:
+        currentPage < totalPages,
+
+      hasPrevPage:
+        currentPage > 1,
+    },
+  };
 };
 
+/**
+ * Search users
+ *
+ * This is optional because getAllUsers()
+ * can already handle search.
+ */
 export const searchUsers = async (
   query: string,
+  page = 1,
+  limit = 20,
 ) => {
   const regex = new RegExp(query, "i");
 
-  const users = await UserModel.find({
+  const skip = (page - 1) * limit;
+
+  const filter = {
     $or: [
       {
         name: regex,
@@ -29,43 +157,90 @@ export const searchUsers = async (
         phone: regex,
       },
     ],
-  })
-    .select("-__v")
-    .sort({
-      name: 1,
-    })
-    .limit(20);
+  };
 
-  return users;
+  const [users, total] = await Promise.all([
+    UserModel.find(filter)
+      .select("-__v")
+      .sort({
+        name: 1,
+      })
+      .skip(skip)
+      .limit(limit)
+      .lean(),
+
+    UserModel.countDocuments(filter),
+  ]);
+
+  const totalPages = Math.ceil(
+    total / limit,
+  );
+
+  return {
+    users,
+
+    pagination: {
+      page,
+      limit,
+      total,
+      totalPages,
+      hasNextPage: page < totalPages,
+      hasPrevPage: page > 1,
+    },
+  };
 };
 
+/**
+ * Get single user
+ */
 export const getUserById = async (
   userId: string,
 ) => {
-  const user = await UserModel.findById(userId)
-    .select("-__v");
+  const user =
+    await UserModel.findById(userId)
+      .select("-__v")
+      .lean();
 
   return user;
 };
 
+/**
+ * Update user profile
+ */
 export const updateUserProfile = async (
   userId: string,
   data: UpdateProfileData,
 ) => {
-  const user = await UserModel.findByIdAndUpdate(
-    userId,
-    {
-      $set: data,
-    },
-    {
-      new: true,
-      runValidators: true,
-    },
-  ).select("-__v");
+  const updateData: UpdateProfileData = {};
+
+  if (data.name !== undefined) {
+    updateData.name =
+      data.name.trim();
+  }
+
+  if (data.bio !== undefined) {
+    updateData.bio =
+      data.bio.trim();
+  }
+
+  const user =
+    await UserModel.findByIdAndUpdate(
+      userId,
+      {
+        $set: updateData,
+      },
+      {
+        new: true,
+        runValidators: true,
+      },
+    ).select("-__v");
 
   return user;
 };
 
+/**
+ * Update avatar
+ */
 export const updateUserAvatar = async (
   userId: string,
   avatarUrl: string,
@@ -80,6 +255,7 @@ export const updateUserAvatar = async (
       },
       {
         new: true,
+        runValidators: true,
       },
     ).select("-__v");
 
