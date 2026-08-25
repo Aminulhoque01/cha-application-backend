@@ -656,3 +656,83 @@ export const promoteMemberToAdmin = async (
 
   return conversation;
 };
+
+
+export const renameGroupConversation = async (
+  currentUserId: string,
+  conversationId: string,
+  name: string,
+) => {
+  if (
+    !mongoose.Types.ObjectId.isValid(
+      conversationId,
+    )
+  ) {
+    throw new Error("Invalid conversation ID");
+  }
+
+  if (
+    !mongoose.Types.ObjectId.isValid(
+      currentUserId,
+    )
+  ) {
+    throw new Error("Invalid current user ID");
+  }
+
+  const conversation =
+    await ConversationModel.findById(
+      conversationId,
+    );
+
+  if (!conversation) {
+    throw new Error("Conversation not found");
+  }
+
+  if (conversation.type !== "group") {
+    throw new Error(
+      "Only groups can be renamed",
+    );
+  }
+
+  const isMember =
+    conversation.participants.some(
+      (participantId) =>
+        participantId.toString() ===
+        currentUserId,
+    );
+
+  if (!isMember) {
+    throw new Error(
+      "You are not a member of this group",
+    );
+  }
+
+  const isAdmin =
+    conversation.admins.some(
+      (adminId) =>
+        adminId.toString() ===
+        currentUserId,
+    );
+
+  if (!isAdmin) {
+    throw new Error(
+      "Only group admins can rename the group",
+    );
+  }
+
+  conversation.name = name.trim();
+
+  await conversation.save();
+
+  await conversation.populate(
+    "participants",
+    "phone name avatar bio isOnline lastSeen",
+  );
+
+  await conversation.populate(
+    "createdBy",
+    "phone name avatar",
+  );
+
+  return conversation;
+};

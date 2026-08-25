@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
-import { addParticipantsSchema, createDirectConversationSchema, createGroupSchema, promoteAdminSchema } from "./conversation.validation";
-import { addParticipantsToGroup, createDirectConversation, createGroupConversation, getMyConversations, promoteMemberToAdmin, removeParticipantFromGroup } from "./conversation.service";
+import { addParticipantsSchema, createDirectConversationSchema, createGroupSchema, promoteAdminSchema, renameGroupSchema } from "./conversation.validation";
+import { addParticipantsToGroup, createDirectConversation, createGroupConversation, getMyConversations, promoteMemberToAdmin, removeParticipantFromGroup, renameGroupConversation } from "./conversation.service";
  
 
 
@@ -359,6 +359,72 @@ export const promoteAdmin = async (
       error instanceof Error
         ? error.message
         : "Failed to promote admin";
+
+    return res.status(400).json({
+      success: false,
+      message,
+    });
+  }
+};
+
+export const renameGroup = async (
+  req: Request,
+  res: Response,
+) => {
+  try {
+    const currentUserId = req.user?.userId;
+
+    if (!currentUserId) {
+      return res.status(401).json({
+        success: false,
+        message: "Unauthorized",
+      });
+    }
+
+    const { id } = req.params;
+
+    if (!id) {
+      return res.status(400).json({
+        success: false,
+        message: "Conversation ID is required",
+      });
+    }
+
+    const result =
+      renameGroupSchema.safeParse(
+        req.body,
+      );
+
+    if (!result.success) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid request data",
+        errors: result.error.flatten(),
+      });
+    }
+
+    const conversation =
+      await renameGroupConversation(
+        currentUserId,
+        id as string,
+        result.data.name,
+      );
+
+    return res.status(200).json({
+      success: true,
+      message: "Group renamed successfully",
+      data: conversation,
+    });
+  } catch (error) {
+    console.error(
+      "Rename group error:",
+      error,
+    );
+
+    const message =
+      error instanceof Error
+        ? error.message
+        : "Failed to rename group";
 
     return res.status(400).json({
       success: false,
