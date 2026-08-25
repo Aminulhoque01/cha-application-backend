@@ -6,6 +6,10 @@ import {
 
 import jwt from "jsonwebtoken";
 
+ 
+
+export type AuthRequest = Request;
+
 interface JwtPayload {
   userId: string;
 }

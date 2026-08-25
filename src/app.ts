@@ -3,6 +3,7 @@ import cors from "cors";
  
 import authRouter from "./module/auth/auth.route";
 import userRouter from "./module/user/user.route"
+import conversationRouter from "./module/conversation/conversation.route";
  
 
 const app = express();
@@ -27,5 +28,6 @@ app.get("/health", (_req, res) => {
 
 app.use("/api/user", userRouter);
 app.use("/api/auth", authRouter);
+app.use("/api/conversation", conversationRouter);
 
 export default app;

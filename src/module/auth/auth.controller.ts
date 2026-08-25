@@ -53,14 +53,14 @@ export const me = async (
   res: Response
 ) => {
   try {
-    if (!req.userId) {
+    if (!req.user?.userId) {
       return res.status(401).json({
         success: false,
         message: "Unauthorized",
       });
     }
 
-    const user = await getCurrentUser(req.userId);
+    const user = await getCurrentUser(req.user?.userId);
 
     if (!user) {
       return res.status(404).json({

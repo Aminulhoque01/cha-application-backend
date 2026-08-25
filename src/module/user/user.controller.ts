@@ -247,7 +247,7 @@ export const updateProfile = async (
       });
     }
 
-    const userId = req.user.userId;
+    const userId = req.user?.userId;
 
     if (!mongoose.Types.ObjectId.isValid(userId)) {
       return res.status(400).json({
@@ -328,7 +328,7 @@ export const updateAvatar = async (
       });
     }
 
-    const userId = req.user.userId;
+    const userId = req.user?.userId;
 
     if (!mongoose.Types.ObjectId.isValid(userId)) {
       return res.status(400).json({
