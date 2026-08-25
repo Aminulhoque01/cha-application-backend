@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
-import { createDirectConversationSchema } from "./conversation.validation";
-import { createDirectConversation, getMyConversations } from "./conversation.service";
+import { createDirectConversationSchema, createGroupSchema } from "./conversation.validation";
+import { createDirectConversation, createGroupConversation, getMyConversations } from "./conversation.service";
  
 
 
@@ -96,6 +96,71 @@ export const getConversations = async (
     return res.status(500).json({
       success: false,
       message: "Failed to fetch conversations",
+    });
+  }
+};
+
+
+
+export const createGroup = async (
+  req: Request,
+  res: Response,
+) => {
+  try {
+    // Current logged-in user
+    const currentUserId = req.user?.userId;
+
+    if (!currentUserId) {
+      return res.status(401).json({
+        success: false,
+        message: "Unauthorized",
+      });
+    }
+
+    // Validate request body
+    const result =
+      createGroupSchema.safeParse(req.body);
+
+    if (!result.success) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid request data",
+        errors: result.error.flatten(),
+      });
+    }
+
+    const {
+      name,
+      participantIds,
+    } = result.data;
+
+    // Create group
+    const conversation =
+      await createGroupConversation(
+        currentUserId,
+        name,
+        participantIds,
+      );
+
+    return res.status(201).json({
+      success: true,
+      message: "Group created successfully",
+      data: conversation,
+    });
+  } catch (error) {
+    console.error(
+      "Create group error:",
+      error,
+    );
+
+    const message =
+      error instanceof Error
+        ? error.message
+        : "Failed to create group";
+
+    return res.status(400).json({
+      success: false,
+      message,
     });
   }
 };

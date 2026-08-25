@@ -2,6 +2,7 @@ import { Router } from "express";
 
 import {
   createConversation,
+  createGroup,
   getConversations,
 } from "./conversation.controller";
 import { authMiddleware } from "../../middleware/auth.middleware";
@@ -26,6 +27,13 @@ conversationRouter.get(
   "/",
   authMiddleware,
   getConversations,
+);
+
+
+conversationRouter.post(
+  "/group",
+  authMiddleware,
+  createGroup,
 );
 
 export default conversationRouter;
