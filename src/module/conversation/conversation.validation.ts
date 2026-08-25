@@ -36,3 +36,23 @@ export const createDirectConversationSchema =
       },
     ),
 });
+
+export const addParticipantsSchema = z.object({
+  participantIds: z
+    .array(
+      z
+        .string()
+        .min(1, "Participant ID is required"),
+    )
+    .min(
+      1,
+      "At least one participant is required",
+    )
+    .refine(
+      (ids) => new Set(ids).size === ids.length,
+      {
+        message:
+          "Duplicate participant IDs are not allowed",
+      },
+    ),
+});

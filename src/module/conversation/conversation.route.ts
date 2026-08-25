@@ -1,6 +1,7 @@
 import { Router } from "express";
 
 import {
+  addParticipants,
   createConversation,
   createGroup,
   getConversations,
@@ -34,6 +35,12 @@ conversationRouter.post(
   "/group",
   authMiddleware,
   createGroup,
+);
+
+conversationRouter.post(
+  "/:id/participants",
+  authMiddleware,
+  addParticipants,
 );
 
 export default conversationRouter;
