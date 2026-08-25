@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
-import { addParticipantsSchema, createDirectConversationSchema, createGroupSchema } from "./conversation.validation";
-import { addParticipantsToGroup, createDirectConversation, createGroupConversation, getMyConversations, removeParticipantFromGroup } from "./conversation.service";
+import { addParticipantsSchema, createDirectConversationSchema, createGroupSchema, promoteAdminSchema } from "./conversation.validation";
+import { addParticipantsToGroup, createDirectConversation, createGroupConversation, getMyConversations, promoteMemberToAdmin, removeParticipantFromGroup } from "./conversation.service";
  
 
 
@@ -291,6 +291,74 @@ export const removeParticipant = async (
       error instanceof Error
         ? error.message
         : "Failed to remove participant";
+
+    return res.status(400).json({
+      success: false,
+      message,
+    });
+  }
+};
+
+
+export const promoteAdmin = async (
+  req: Request,
+  res: Response,
+) => {
+  try {
+    const currentUserId = req.user?.userId;
+
+    if (!currentUserId) {
+      return res.status(401).json({
+        success: false,
+        message: "Unauthorized",
+      });
+    }
+
+    const { id } = req.params;
+
+    if (!id) {
+      return res.status(400).json({
+        success: false,
+        message: "Conversation ID is required",
+      });
+    }
+
+    const result =
+      promoteAdminSchema.safeParse(
+        req.body,
+      );
+
+    if (!result.success) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid request data",
+        errors: result.error.flatten(),
+      });
+    }
+
+    const conversation =
+      await promoteMemberToAdmin(
+        currentUserId,
+        id as string,
+        result.data.userId,
+      );
+
+    return res.status(200).json({
+      success: true,
+      message:
+        "User promoted to admin successfully",
+      data: conversation,
+    });
+  } catch (error) {
+    console.error(
+      "Promote admin error:",
+      error,
+    );
+
+    const message =
+      error instanceof Error
+        ? error.message
+        : "Failed to promote admin";
 
     return res.status(400).json({
       success: false,

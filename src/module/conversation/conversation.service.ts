@@ -533,3 +533,126 @@ export const removeParticipantFromGroup = async (
 
   return conversation;
 };
+
+
+export const promoteMemberToAdmin = async (
+  currentUserId: string,
+  conversationId: string,
+  targetUserId: string,
+) => {
+  if (
+    !mongoose.Types.ObjectId.isValid(
+      conversationId,
+    )
+  ) {
+    throw new Error("Invalid conversation ID");
+  }
+
+  if (
+    !mongoose.Types.ObjectId.isValid(
+      currentUserId,
+    )
+  ) {
+    throw new Error("Invalid current user ID");
+  }
+
+  if (
+    !mongoose.Types.ObjectId.isValid(
+      targetUserId,
+    )
+  ) {
+    throw new Error("Invalid target user ID");
+  }
+
+  const conversation =
+    await ConversationModel.findById(
+      conversationId,
+    );
+
+  if (!conversation) {
+    throw new Error("Conversation not found");
+  }
+
+  if (conversation.type !== "group") {
+    throw new Error(
+      "Only groups can have admins",
+    );
+  }
+
+  // Current user must be member
+  const isCurrentUserMember =
+    conversation.participants.some(
+      (participantId) =>
+        participantId.toString() ===
+        currentUserId,
+    );
+
+  if (!isCurrentUserMember) {
+    throw new Error(
+      "You are not a member of this group",
+    );
+  }
+
+  // Current user must be admin
+  const isCurrentUserAdmin =
+    conversation.admins.some(
+      (adminId) =>
+        adminId.toString() ===
+        currentUserId,
+    );
+
+  if (!isCurrentUserAdmin) {
+    throw new Error(
+      "Only group admins can promote members",
+    );
+  }
+
+  // Target must be member
+  const isTargetMember =
+    conversation.participants.some(
+      (participantId) =>
+        participantId.toString() ===
+        targetUserId,
+    );
+
+  if (!isTargetMember) {
+    throw new Error(
+      "Target user is not a group member",
+    );
+  }
+
+  // Already admin?
+  const isAlreadyAdmin =
+    conversation.admins.some(
+      (adminId) =>
+        adminId.toString() ===
+        targetUserId,
+    );
+
+  if (isAlreadyAdmin) {
+    throw new Error(
+      "User is already an admin",
+    );
+  }
+
+  // Promote
+  conversation.admins.push(
+    new mongoose.Types.ObjectId(
+      targetUserId,
+    ),
+  );
+
+  await conversation.save();
+
+  await conversation.populate(
+    "participants",
+    "phone name avatar bio isOnline lastSeen",
+  );
+
+  await conversation.populate(
+    "createdBy",
+    "phone name avatar",
+  );
+
+  return conversation;
+};

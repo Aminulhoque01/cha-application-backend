@@ -5,6 +5,8 @@ import {
   createConversation,
   createGroup,
   getConversations,
+  promoteAdmin,
+  removeParticipant,
 } from "./conversation.controller";
 import { authMiddleware } from "../../middleware/auth.middleware";
 
@@ -41,6 +43,18 @@ conversationRouter.post(
   "/:id/participants",
   authMiddleware,
   addParticipants,
+);
+
+conversationRouter.delete(
+  "/:id/participants/:userId",
+  authMiddleware,
+  removeParticipant,
+);
+
+conversationRouter.post(
+  "/:id/admins",
+  authMiddleware,
+  promoteAdmin,
 );
 
 export default conversationRouter;

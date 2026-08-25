@@ -56,3 +56,21 @@ export const addParticipantsSchema = z.object({
       },
     ),
 });
+
+
+export const promoteAdminSchema = z.object({
+  userId: z
+    .string()
+    .min(1, "User ID is required"),
+});
+
+export const renameGroupSchema = z.object({
+  name: z
+    .string()
+    .trim()
+    .min(1, "Group name is required")
+    .max(
+      100,
+      "Group name cannot exceed 100 characters",
+    ),
+});
