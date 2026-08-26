@@ -14,3 +14,27 @@ export const sendMessageSchema = z.object({
       "Message cannot exceed 5000 characters",
     ),
 });
+
+
+export const getMessagesSchema = z.object({
+  params: z.object({
+    id: z
+      .string()
+      .min(1, "Conversation ID is required"),
+  }),
+
+  query: z.object({
+    page: z.coerce
+      .number()
+      .int()
+      .positive()
+      .default(1),
+
+    limit: z.coerce
+      .number()
+      .int()
+      .positive()
+      .max(100)
+      .default(30),
+  }),
+});
