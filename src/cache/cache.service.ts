@@ -1,34 +1,27 @@
 import { redisClient } from "../config/redis";
 
-export const setCache = async <T>(
-  key: string,
-  value: T,
-  ttl = 300
+export const clearCacheByPattern = async (
+  pattern: string,
 ): Promise<void> => {
-  await redisClient.setEx(
-    key,
-    ttl,
-    JSON.stringify(value)
-  );
+  let cursor = "0";
+
+  const keys: string[] = [];
+
+  do {
+    const result = await redisClient.scan(
+      cursor,
+      {
+        MATCH: pattern,
+        COUNT: 100,
+      },
+    );
+
+    cursor = result.cursor;
+
+    keys.push(...result.keys);
+  } while (cursor !== "0");
+
+  if (keys.length > 0) {
+    await redisClient.del(keys);
+  }
 };
-
-export const getCache =
-  async <T>(
-    key: string
-  ): Promise<T | null> => {
-    const value =
-      await redisClient.get(key);
-
-    if (!value) {
-      return null;
-    }
-
-    return JSON.parse(value) as T;
-  };
-
-export const deleteCache =
-  async (
-    key: string
-  ): Promise<void> => {
-    await redisClient.del(key);
-  };
