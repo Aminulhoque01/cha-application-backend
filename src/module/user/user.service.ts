@@ -1,3 +1,5 @@
+import { cacheKeys } from "../../cache/cache.keys";
+import { getCache, setCache } from "../../cache/cache.service";
 import { UserModel } from "./user.model";
 
 export interface GetUsersQuery {
@@ -196,10 +198,36 @@ export const searchUsers = async (
 export const getUserById = async (
   userId: string,
 ) => {
+  const cacheKey =
+    cacheKeys.userProfile(userId);
+
+  // 1. Check Redis
+  const cachedUser =
+    await getCache(cacheKey);
+
+  if (cachedUser) {
+    console.log("User profile: Redis HIT");
+
+    return cachedUser;
+  }
+
+  console.log("User profile: Redis MISS");
+
+  // 2. Get from MongoDB
   const user =
     await UserModel.findById(userId)
-      .select("-__v")
-      .lean();
+      .select("-__v");
+
+  if (!user) {
+    return null;
+  }
+
+  // 3. Save to Redis
+  await setCache(
+    cacheKey,
+    user,
+    300,
+  );
 
   return user;
 };
