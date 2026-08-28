@@ -2,6 +2,8 @@ import mongoose from "mongoose";
 
 import { ConversationModel } from "./conversation.model";
 import { UserModel } from "../user/user.model";
+import { getCache, setCache } from "../../cache/cache.service";
+import { cacheKeys } from "../../cache/cache.keys";
 
 
 
@@ -92,31 +94,63 @@ export const getMyConversations = async (
   currentUserId: string,
 ) => {
   if (
-    !mongoose.Types.ObjectId.isValid(currentUserId)
+    !mongoose.Types.ObjectId.isValid(
+      currentUserId,
+    )
   ) {
     throw new Error("Invalid user ID");
   }
 
+  const cacheKey =
+    cacheKeys.userConversations(
+      currentUserId,
+    );
+
+  // Redis HIT
+  const cachedConversations =
+    await getCache(cacheKey);
+
+  if (cachedConversations) {
+    console.log(
+      "Conversations: Redis HIT",
+    );
+
+    return cachedConversations;
+  }
+
+  console.log(
+    "Conversations: Redis MISS",
+  );
+
+  // Redis MISS → MongoDB
   const conversations =
     await ConversationModel.find({
-      participants: new mongoose.Types.ObjectId(
-        currentUserId,
-      ),
+      participants:
+        new mongoose.Types.ObjectId(
+          currentUserId,
+        ),
     })
       .populate(
         "participants",
         "phone name avatar bio isOnline lastSeen",
       )
       .populate(
-        "lastMessage",
-      )
-      .populate(
         "createdBy",
         "phone name avatar",
+      )
+      .populate(
+        "lastMessage",
       )
       .sort({
         updatedAt: -1,
       });
+
+  // Save to Redis
+  await setCache(
+    cacheKey,
+    conversations,
+    300,
+  );
 
   return conversations;
 };
