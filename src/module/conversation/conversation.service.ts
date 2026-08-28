@@ -794,3 +794,24 @@ export const renameGroupConversation = async (
 
   return conversation;
 };
+
+
+export const isConversationMember = async (
+  conversationId: string,
+  userId: string,
+): Promise<boolean> => {
+  if (
+    !mongoose.Types.ObjectId.isValid(conversationId) ||
+    !mongoose.Types.ObjectId.isValid(userId)
+  ) {
+    return false;
+  }
+
+  const conversation =
+    await ConversationModel.findOne({
+      _id: conversationId,
+      participants: userId,
+    }).select("_id");
+
+  return !!conversation;
+};
