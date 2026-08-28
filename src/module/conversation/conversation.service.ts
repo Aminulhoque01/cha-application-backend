@@ -2,7 +2,7 @@ import mongoose from "mongoose";
 
 import { ConversationModel } from "./conversation.model";
 import { UserModel } from "../user/user.model";
-import { getCache, setCache } from "../../cache/cache.service";
+import { getCache, invalidateUserConversationsCache, setCache } from "../../cache/cache.service";
 import { cacheKeys } from "../../cache/cache.keys";
 
 
@@ -409,6 +409,11 @@ export const addParticipantsToGroup = async (
 
   await conversation.save();
 
+  await invalidateUserConversationsCache([
+    currentUserId,
+    ...uniqueParticipantIds,
+  ]);
+
   // 12. Populate response
   await conversation.populate(
     "participants",
@@ -554,6 +559,11 @@ export const removeParticipantFromGroup = async (
 
   await conversation.save();
 
+  await invalidateUserConversationsCache([
+    currentUserId,
+    targetUserId,
+  ]);
+
   // Populate response
   await conversation.populate(
     "participants",
@@ -677,6 +687,10 @@ export const promoteMemberToAdmin = async (
   );
 
   await conversation.save();
+  await invalidateUserConversationsCache([
+    currentUserId,
+    targetUserId,
+  ]);
 
   await conversation.populate(
     "participants",
@@ -757,6 +771,16 @@ export const renameGroupConversation = async (
   conversation.name = name.trim();
 
   await conversation.save();
+
+  const memberIds =
+  conversation.participants.map(
+    (participantId) =>
+      participantId.toString(),
+  );
+
+  await invalidateUserConversationsCache(
+    memberIds,
+  );
 
   await conversation.populate(
     "participants",

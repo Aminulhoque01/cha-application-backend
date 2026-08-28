@@ -66,3 +66,22 @@ export const clearCacheByPattern = async (
     await redisClient.del(keys);
   }
 };
+
+
+export const invalidateUserConversationsCache = async (
+  userIds: string[],
+): Promise<void> => {
+  const uniqueUserIds = [
+    ...new Set(userIds),
+  ];
+
+  const keys = uniqueUserIds.map((userId) =>
+    `user:conversations:${userId}`,
+  );
+
+  if (keys.length === 0) {
+    return;
+  }
+
+  await redisClient.del(keys);
+};
