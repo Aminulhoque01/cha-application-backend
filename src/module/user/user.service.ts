@@ -289,3 +289,41 @@ export const updateUserAvatar = async (
 
   return user;
 };
+
+
+export const setUserOnline =
+  async (userId: string) => {
+    const user =
+      await UserModel.findByIdAndUpdate(
+        userId,
+        {
+          $set: {
+            isOnline: true,
+          },
+        },
+        {
+          new: true,
+        },
+      );
+
+    return user;
+  };
+
+export const setUserOffline =
+  async (userId: string) => {
+    const user =
+      await UserModel.findByIdAndUpdate(
+        userId,
+        {
+          $set: {
+            isOnline: false,
+            lastSeen: new Date(),
+          },
+        },
+        {
+          new: true,
+        },
+      );
+
+    return user;
+  };
