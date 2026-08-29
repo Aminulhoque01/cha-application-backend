@@ -1,18 +1,32 @@
 import { Server } from "socket.io";
-
 import { Server as HttpServer } from "http";
 
 import { env } from "../config/env";
 
 import { socketAuth } from "./socket.auth";
 import { registerSocketHandlers } from "./socket.handlers";
-import { isConversationMember } from "../module/conversation/conversation.service";
+import {
+  isConversationMember,
+} from "../module/conversation/conversation.service";
 
-export const createSocketServer = (httpServer: HttpServer) => {
-  const io = new Server(httpServer, {
+import {
+  ClientToServerEvents,
+  ServerToClientEvents,
+  InterServerEvents,
+  SocketData,
+} from "./socket.types";
+
+export const createSocketServer = (
+  httpServer: HttpServer,
+) => {
+  const io = new Server<
+    ClientToServerEvents,
+    ServerToClientEvents,
+    InterServerEvents,
+    SocketData
+  >(httpServer, {
     cors: {
       origin: env.CLIENT_URL,
-
       credentials: true,
     },
   });
@@ -28,72 +42,121 @@ export const createSocketServer = (httpServer: HttpServer) => {
 
     registerSocketHandlers(io, socket);
 
-    socket.on("conversation:join", async ({ conversationId }) => {
-      try {
-        if (!conversationId) {
-          socket.emit("conversation:error", {
-            message: "Conversation ID is required",
-          });
+    socket.on(
+      "conversation:join",
+      async ({ conversationId }) => {
+        try {
+          if (!conversationId) {
+            socket.emit(
+              "conversation:error",
+              {
+                message:
+                  "Conversation ID is required",
+              },
+            );
 
-          return;
-        }
+            return;
+          }
 
-       const userId = socket.data.userId;
+          const userId =
+            socket.data.userId;
 
-        const isMember = await isConversationMember(conversationId, userId);
+          const isMember =
+            await isConversationMember(
+              conversationId,
+              userId,
+            );
 
-        if (!isMember) {
-          socket.emit("conversation:error", {
-            message: "You are not a member of this conversation",
+          if (!isMember) {
+            socket.emit(
+              "conversation:error",
+              {
+                message:
+                  "You are not a member of this conversation",
+                conversationId,
+              },
+            );
+
+            return;
+          }
+
+          await socket.join(
             conversationId,
-          });
+          );
 
-          return;
+          socket.emit(
+            "conversation:joined",
+            {
+              conversationId,
+            },
+          );
+
+          console.log(
+            `User ${userId} joined conversation ${conversationId}`,
+          );
+        } catch (error) {
+          console.error(
+            "conversation:join error:",
+            error,
+          );
+
+          socket.emit(
+            "conversation:error",
+            {
+              message:
+                "Failed to join conversation",
+            },
+          );
         }
+      },
+    );
 
-        await socket.join(conversationId);
+    socket.on(
+      "conversation:leave",
+      async ({ conversationId }) => {
+        try {
+          if (!conversationId) {
+            socket.emit(
+              "conversation:error",
+              {
+                message:
+                  "Conversation ID is required",
+              },
+            );
 
-        socket.emit("conversation:joined", {
-          conversationId,
-        });
+            return;
+          }
 
-        console.log(`User ${userId} joined conversation ${conversationId}`);
-      } catch (error) {
-        console.error("conversation:join error:", error);
+          await socket.leave(
+            conversationId,
+          );
 
-        socket.emit("conversation:error", {
-          message: "Failed to join conversation",
-        });
-      }
-    });
+          socket.emit(
+            "conversation:left",
+            {
+              conversationId,
+            },
+          );
 
-    socket.on("conversation:leave", async ({ conversationId }) => {
-      try {
-        if (!conversationId) {
-          socket.emit("conversation:error", {
-            message: "Conversation ID is required",
-          });
+          console.log(
+            `User ${socket.data.userId} left conversation ${conversationId}`,
+          );
+        } catch (error) {
+          console.error(
+            "conversation:leave error:",
+            error,
+          );
 
-          return;
+          socket.emit(
+            "conversation:error",
+            {
+              message:
+                "Failed to leave conversation",
+            },
+          );
         }
-
-        await socket.leave(conversationId);
-
-        socket.emit("conversation:left", {
-          conversationId,
-        });
-
-        console.log(
-          `User ${socket.data.userId} left conversation ${conversationId}`,
-        );
-      } catch (error) {
-        console.error("conversation:leave error:", error);
-
-        socket.emit("conversation:error", {
-          message: "Failed to leave conversation",
-        });
-      }
-    });
+      },
+    );
   });
 
   return io;
