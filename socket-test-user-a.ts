@@ -1,6 +1,7 @@
 import { io } from "socket.io-client";
 
-const token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI2YThiZWFlZjg2N2FlYzY0ZjYwZmQ3YmMiLCJpYXQiOjE3ODc2NTM1MjAsImV4cCI6MTc4ODI1ODMyMH0.4Fzw3X1mui60Qp6hBfspvEEETc1iYWS_gvIQwulsH1M";
+const token =
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI2YThiZWFlZjg2N2FlYzY0ZjYwZmQ3YmMiLCJpYXQiOjE3ODc2NTM1MjAsImV4cCI6MTc4ODI1ODMyMH0.4Fzw3X1mui60Qp6hBfspvEEETc1iYWS_gvIQwulsH1M";
 
 const conversationId =
   "6a9168c317ad884f2af2a1bc";
@@ -14,19 +15,30 @@ const socket = io(
   },
 );
 
-socket.on("connect", () => {
-  console.log(
-    "USER A connected:",
-    socket.id,
-  );
+// ==========================================
+// Connected
+// ==========================================
 
-  socket.emit(
-    "conversation:join",
-    {
-      conversationId,
-    },
-  );
-});
+socket.on(
+  "connect",
+  () => {
+    console.log(
+      "USER A connected:",
+      socket.id,
+    );
+
+    socket.emit(
+      "conversation:join",
+      {
+        conversationId,
+      },
+    );
+  },
+);
+
+// ==========================================
+// Conversation Joined
+// ==========================================
 
 socket.on(
   "conversation:joined",
@@ -36,35 +48,26 @@ socket.on(
       data,
     );
 
-    // 1. Start typing
+    // Send message after joining
     setTimeout(() => {
       socket.emit(
-        "typing:start",
+        "message:send",
         {
           conversationId,
+          text: "Hello delivery test",
         },
       );
 
       console.log(
-        "USER A sent TYPING START",
+        "USER A sent MESSAGE",
       );
-    }, 1000);
-
-    // 2. Stop typing
-    setTimeout(() => {
-      socket.emit(
-        "typing:stop",
-        {
-          conversationId,
-        },
-      );
-
-      console.log(
-        "USER A sent TYPING STOP",
-      );
-    }, 3000);
+    }, 2000);
   },
 );
+
+// ==========================================
+// New Message
+// ==========================================
 
 socket.on(
   "message:new",
@@ -76,7 +79,51 @@ socket.on(
   },
 );
 
+// ==========================================
+// Delivery Update
+// ==========================================
 
+socket.on(
+  "message:delivery:update",
+  (data) => {
+    console.log(
+      "USER A received DELIVERY UPDATE:",
+      data,
+    );
+  },
+);
+
+// ==========================================
+// Typing Start
+// ==========================================
+
+socket.on(
+  "typing:start",
+  (data) => {
+    console.log(
+      "USER A received TYPING START:",
+      data,
+    );
+  },
+);
+
+// ==========================================
+// Typing Stop
+// ==========================================
+
+socket.on(
+  "typing:stop",
+  (data) => {
+    console.log(
+      "USER A received TYPING STOP:",
+      data,
+    );
+  },
+);
+
+// ==========================================
+// Message Error
+// ==========================================
 
 socket.on(
   "message:error",
@@ -88,6 +135,10 @@ socket.on(
   },
 );
 
+// ==========================================
+// Conversation Error
+// ==========================================
+
 socket.on(
   "conversation:error",
   (error) => {
@@ -98,12 +149,30 @@ socket.on(
   },
 );
 
+// ==========================================
+// Connection Error
+// ==========================================
+
 socket.on(
   "connect_error",
   (error) => {
     console.error(
       "USER A connection error:",
       error.message,
+    );
+  },
+);
+
+// ==========================================
+// Disconnect
+// ==========================================
+
+socket.on(
+  "disconnect",
+  (reason) => {
+    console.log(
+      "USER A disconnected:",
+      reason,
     );
   },
 );
