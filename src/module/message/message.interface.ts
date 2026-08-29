@@ -9,6 +9,10 @@ export interface IMessage {
 
   text: string;
 
+  deliveredTo: Types.ObjectId[];
+
+  readBy: Types.ObjectId[];
+
   createdAt: Date;
 
   updatedAt: Date;
