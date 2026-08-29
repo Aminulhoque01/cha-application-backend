@@ -94,6 +94,27 @@ export interface ServerToClientEvents {
 
 export interface InterServerEvents {}
 
+
+
+ 
+
+export interface ClientToServerEvents {
+  "message:delivered": (
+    payload: {
+      messageId: string;
+    },
+  ) => void;
+}
+
+export interface ServerToClientEvents {
+  "message:delivery:update": (
+    payload: {
+      messageId: string;
+      userId: string;
+    },
+  ) => void;
+}
+
 // ==========================================
 // Socket
 // ==========================================

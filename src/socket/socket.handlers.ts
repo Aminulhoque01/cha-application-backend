@@ -2,7 +2,7 @@ import { Server } from "socket.io";
 
 import { AuthenticatedSocket } from "./socket.types";
 import { setUserOffline, setUserOnline } from "../module/user/user.service";
-import { createMessage } from "../module/message/message.service";
+import { createMessage, markMessageAsDelivered } from "../module/message/message.service";
 import { isConversationMember } from "../module/conversation/conversation.service";
 
 export const registerSocketHandlers = (
@@ -64,6 +64,31 @@ export const registerSocketHandlers = (
       }
     },
   );
+
+  socket.on("message:delivered", async ({ messageId }) => {
+    try {
+      const result = await markMessageAsDelivered(userId, messageId);
+
+      // Notify only the conversation room
+      io.to(result.conversationId).emit("message:delivery:update", {
+        messageId: result.messageId,
+        userId: result.userId,
+      });
+
+      console.log(
+        `Message ${result.messageId} delivered to user ${result.userId}`,
+      );
+    } catch (error) {
+      console.error("message:delivered error:", error);
+
+      socket.emit("message:error", {
+        message:
+          error instanceof Error
+            ? error.message
+            : "Failed to mark message as delivered",
+      });
+    }
+  });
 
   socket.on("typing:start", async ({ conversationId }) => {
     try {

@@ -180,3 +180,90 @@ export const getConversationMessages = async (
     },
   };
 };
+
+
+export const markMessageAsDelivered = async (
+  currentUserId: string,
+  messageId: string,
+) => {
+  // 1. Validate IDs
+  if (
+    !mongoose.Types.ObjectId.isValid(
+      currentUserId,
+    )
+  ) {
+    throw new Error(
+      "Invalid current user ID",
+    );
+  }
+
+  if (
+    !mongoose.Types.ObjectId.isValid(
+      messageId,
+    )
+  ) {
+    throw new Error(
+      "Invalid message ID",
+    );
+  }
+
+  // 2. Find message
+  const message =
+    await MessageModel.findById(messageId);
+
+  if (!message) {
+    throw new Error(
+      "Message not found",
+    );
+  }
+
+  // 3. Sender cannot mark own message as delivered
+  if (
+    message.senderId.toString() ===
+    currentUserId
+  ) {
+    throw new Error(
+      "You cannot mark your own message as delivered",
+    );
+  }
+
+  // 4. Verify user is a conversation member
+  const conversation =
+    await ConversationModel.findOne({
+      _id: message.conversationId,
+
+      participants:
+        new mongoose.Types.ObjectId(
+          currentUserId,
+        ),
+    }).select("_id");
+
+  if (!conversation) {
+    throw new Error(
+      "You are not a member of this conversation",
+    );
+  }
+
+  // 5. Add user only once
+  await MessageModel.findByIdAndUpdate(
+    messageId,
+    {
+      $addToSet: {
+        deliveredTo:
+          new mongoose.Types.ObjectId(
+            currentUserId,
+          ),
+      },
+    },
+    {
+      new: true,
+    },
+  );
+
+  return {
+    messageId,
+    conversationId:
+      message.conversationId.toString(),
+    userId: currentUserId,
+  };
+};
