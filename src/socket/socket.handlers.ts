@@ -3,6 +3,7 @@ import { Server } from "socket.io";
 import { AuthenticatedSocket } from "./socket.types";
 import { setUserOffline, setUserOnline } from "../module/user/user.service";
 import { createMessage } from "../module/message/message.service";
+import { isConversationMember } from "../module/conversation/conversation.service";
 
 export const registerSocketHandlers = (
   io: Server,
@@ -63,6 +64,73 @@ export const registerSocketHandlers = (
       }
     },
   );
+
+  socket.on("typing:start", async ({ conversationId }) => {
+    try {
+      if (!conversationId) {
+        socket.emit("message:error", {
+          message: "Conversation ID is required",
+        });
+
+        return;
+      }
+
+      const isMember = await isConversationMember(conversationId, userId);
+
+      if (!isMember) {
+        socket.emit("message:error", {
+          message: "You are not a member of this conversation",
+        });
+
+        return;
+      }
+
+      // Send to everyone in the room EXCEPT sender
+      socket.to(conversationId).emit("typing:start", {
+        conversationId,
+        userId,
+      });
+
+      console.log(`User ${userId} started typing in ${conversationId}`);
+    } catch (error) {
+      console.error("typing:start error:", error);
+    }
+  });
+
+  // ==========================================
+  // Typing Stop
+  // ==========================================
+
+  socket.on("typing:stop", async ({ conversationId }) => {
+    try {
+      if (!conversationId) {
+        socket.emit("message:error", {
+          message: "Conversation ID is required",
+        });
+
+        return;
+      }
+
+      const isMember = await isConversationMember(conversationId, userId);
+
+      if (!isMember) {
+        socket.emit("message:error", {
+          message: "You are not a member of this conversation",
+        });
+
+        return;
+      }
+
+      socket.to(conversationId).emit("typing:stop", {
+        conversationId,
+        userId,
+      });
+
+      console.log(`User ${userId} stopped typing in ${conversationId}`);
+    } catch (error) {
+      console.error("typing:stop error:", error);
+    }
+  });
 
   // Disconnect
   socket.on("disconnect", (reason) => {

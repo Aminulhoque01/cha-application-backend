@@ -27,8 +27,19 @@ export interface ClientToServerEvents {
       text: string;
     },
   ) => void;
-}
 
+  "typing:start": (
+    payload: {
+      conversationId: string;
+    },
+  ) => void;
+
+  "typing:stop": (
+    payload: {
+      conversationId: string;
+    },
+  ) => void;
+}
 // ==========================================
 // Server -> Client
 // ==========================================
@@ -62,8 +73,21 @@ export interface ServerToClientEvents {
       message: string;
     },
   ) => void;
-}
 
+  "typing:start": (
+    payload: {
+      conversationId: string;
+      userId: string;
+    },
+  ) => void;
+
+  "typing:stop": (
+    payload: {
+      conversationId: string;
+      userId: string;
+    },
+  ) => void;
+}
 // ==========================================
 // Inter-server
 // ==========================================
@@ -74,10 +98,9 @@ export interface InterServerEvents {}
 // Socket
 // ==========================================
 
-export type AuthenticatedSocket =
-  Socket<
-    ClientToServerEvents,
-    ServerToClientEvents,
-    InterServerEvents,
-    SocketData
-  >;
+export type AuthenticatedSocket = Socket<
+  ClientToServerEvents,
+  ServerToClientEvents,
+  InterServerEvents,
+  SocketData
+>;
