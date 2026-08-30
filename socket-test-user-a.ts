@@ -1,7 +1,6 @@
 import { io } from "socket.io-client";
 
-const token =
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI2YThiZWFlZjg2N2FlYzY0ZjYwZmQ3YmMiLCJpYXQiOjE3ODc2NTM1MjAsImV4cCI6MTc4ODI1ODMyMH0.4Fzw3X1mui60Qp6hBfspvEEETc1iYWS_gvIQwulsH1M";
+const token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI2YThiZWFlZjg2N2FlYzY0ZjYwZmQ3YmMiLCJpYXQiOjE3ODc2NTM1MjAsImV4cCI6MTc4ODI1ODMyMH0.4Fzw3X1mui60Qp6hBfspvEEETc1iYWS_gvIQwulsH1M";
 
 const conversationId =
   "6a9168c317ad884f2af2a1bc";
@@ -15,30 +14,19 @@ const socket = io(
   },
 );
 
-// ==========================================
-// Connected
-// ==========================================
+socket.on("connect", () => {
+  console.log(
+    "USER A connected:",
+    socket.id,
+  );
 
-socket.on(
-  "connect",
-  () => {
-    console.log(
-      "USER A connected:",
-      socket.id,
-    );
-
-    socket.emit(
-      "conversation:join",
-      {
-        conversationId,
-      },
-    );
-  },
-);
-
-// ==========================================
-// Conversation Joined
-// ==========================================
+  socket.emit(
+    "conversation:join",
+    {
+      conversationId,
+    },
+  );
+});
 
 socket.on(
   "conversation:joined",
@@ -54,7 +42,7 @@ socket.on(
         "message:send",
         {
           conversationId,
-          text: "Hello delivery test",
+          text: "Hello read status test",
         },
       );
 
@@ -65,24 +53,18 @@ socket.on(
   },
 );
 
-// ==========================================
-// New Message
-// ==========================================
-
+// User A receives the message too
 socket.on(
   "message:new",
   (message) => {
     console.log(
-      "USER A received:",
+      "USER A received MESSAGE:",
       message,
     );
   },
 );
 
-// ==========================================
-// Delivery Update
-// ==========================================
-
+// Delivered update
 socket.on(
   "message:delivery:update",
   (data) => {
@@ -93,37 +75,16 @@ socket.on(
   },
 );
 
-// ==========================================
-// Typing Start
-// ==========================================
-
+// ⭐ Read update
 socket.on(
-  "typing:start",
+  "message:read:update",
   (data) => {
     console.log(
-      "USER A received TYPING START:",
+      "USER A received READ UPDATE:",
       data,
     );
   },
 );
-
-// ==========================================
-// Typing Stop
-// ==========================================
-
-socket.on(
-  "typing:stop",
-  (data) => {
-    console.log(
-      "USER A received TYPING STOP:",
-      data,
-    );
-  },
-);
-
-// ==========================================
-// Message Error
-// ==========================================
 
 socket.on(
   "message:error",
@@ -135,10 +96,6 @@ socket.on(
   },
 );
 
-// ==========================================
-// Conversation Error
-// ==========================================
-
 socket.on(
   "conversation:error",
   (error) => {
@@ -149,30 +106,12 @@ socket.on(
   },
 );
 
-// ==========================================
-// Connection Error
-// ==========================================
-
 socket.on(
   "connect_error",
   (error) => {
     console.error(
       "USER A connection error:",
       error.message,
-    );
-  },
-);
-
-// ==========================================
-// Disconnect
-// ==========================================
-
-socket.on(
-  "disconnect",
-  (reason) => {
-    console.log(
-      "USER A disconnected:",
-      reason,
     );
   },
 );

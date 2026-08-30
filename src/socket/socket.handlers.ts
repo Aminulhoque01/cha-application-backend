@@ -2,7 +2,11 @@ import { Server } from "socket.io";
 
 import { AuthenticatedSocket } from "./socket.types";
 import { setUserOffline, setUserOnline } from "../module/user/user.service";
-import { createMessage, markMessageAsDelivered } from "../module/message/message.service";
+import {
+  createMessage,
+  markMessageAsDelivered,
+  markMessageAsRead,
+} from "../module/message/message.service";
 import { isConversationMember } from "../module/conversation/conversation.service";
 
 export const registerSocketHandlers = (
@@ -65,6 +69,8 @@ export const registerSocketHandlers = (
     },
   );
 
+ 
+
   socket.on("message:delivered", async ({ messageId }) => {
     try {
       const result = await markMessageAsDelivered(userId, messageId);
@@ -86,6 +92,48 @@ export const registerSocketHandlers = (
           error instanceof Error
             ? error.message
             : "Failed to mark message as delivered",
+      });
+    }
+  });
+
+   // ==========================================
+  // Message Read
+  // ==========================================
+
+  socket.on("message:read", async (payload: { messageId: string }) => {
+    try {
+      const { messageId } = payload;
+
+      // Basic validation
+      if (!messageId) {
+        socket.emit("message:error", {
+          message: "Message ID is required",
+        });
+
+        return;
+      }
+
+      // Mark message as read
+      const message = await markMessageAsRead(userId, messageId);
+
+      // Broadcast read update
+      io.to(message.conversationId.toString()).emit("message:read:update", {
+        messageId: message._id.toString(),
+
+        conversationId: message.conversationId.toString(),
+
+        userId,
+      });
+
+      console.log(`User ${userId} read message ${messageId}`);
+    } catch (error) {
+      console.error("message:read error:", error);
+
+      socket.emit("message:error", {
+        message:
+          error instanceof Error
+            ? error.message
+            : "Failed to mark message as read",
       });
     }
   });

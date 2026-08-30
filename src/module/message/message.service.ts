@@ -267,3 +267,99 @@ export const markMessageAsDelivered = async (
     userId: currentUserId,
   };
 };
+
+
+export const markMessageAsRead = async (
+  currentUserId: string,
+  messageId: string,
+) => {
+  // 1. Validate user ID
+  if (
+    !mongoose.Types.ObjectId.isValid(
+      currentUserId,
+    )
+  ) {
+    throw new Error(
+      "Invalid current user ID",
+    );
+  }
+
+  // 2. Validate message ID
+  if (
+    !mongoose.Types.ObjectId.isValid(
+      messageId,
+    )
+  ) {
+    throw new Error(
+      "Invalid message ID",
+    );
+  }
+
+  const userObjectId =
+    new mongoose.Types.ObjectId(
+      currentUserId,
+    );
+
+  // 3. Find message
+  const message =
+    await MessageModel.findById(
+      messageId,
+    );
+
+  if (!message) {
+    throw new Error(
+      "Message not found",
+    );
+  }
+
+  // 4. Check conversation membership
+  const conversation =
+    await ConversationModel.findOne({
+      _id: message.conversationId,
+
+      participants: userObjectId,
+    }).select("_id");
+
+  if (!conversation) {
+    throw new Error(
+      "You are not a member of this conversation",
+    );
+  }
+
+  // 5. Sender cannot mark own message as read
+  if (
+    message.senderId.toString() ===
+    currentUserId
+  ) {
+    throw new Error(
+      "You cannot mark your own message as read",
+    );
+  }
+
+  // 6. Prevent duplicate read
+  const alreadyRead =
+    message.readBy.some(
+      (userId) =>
+        userId.toString() ===
+        currentUserId,
+    );
+
+  if (alreadyRead) {
+    return message;
+  }
+
+  // 7. Add user to readBy
+  message.readBy.push(
+    userObjectId,
+  );
+
+  await message.save();
+
+  // 8. Populate readBy users
+  await message.populate(
+    "readBy",
+    "phone name avatar",
+  );
+
+  return message;
+};

@@ -1,13 +1,5 @@
 import { Socket } from "socket.io";
 
-export interface SocketData {
-  userId: string;
-}
-
-// ==========================================
-// Client -> Server
-// ==========================================
-
 export interface ClientToServerEvents {
   "conversation:join": (
     payload: {
@@ -28,6 +20,18 @@ export interface ClientToServerEvents {
     },
   ) => void;
 
+  "message:delivered": (
+    payload: {
+      messageId: string;
+    },
+  ) => void;
+
+  "message:read": (
+    payload: {
+      messageId: string;
+    },
+  ) => void;
+
   "typing:start": (
     payload: {
       conversationId: string;
@@ -40,88 +44,79 @@ export interface ClientToServerEvents {
     },
   ) => void;
 }
-// ==========================================
-// Server -> Client
-// ==========================================
 
 export interface ServerToClientEvents {
   "conversation:joined": (
-    payload: {
+    data: {
       conversationId: string;
     },
   ) => void;
 
   "conversation:left": (
-    payload: {
+    data: {
       conversationId: string;
     },
   ) => void;
 
   "conversation:error": (
-    payload: {
+    data: {
       message: string;
       conversationId?: string;
     },
   ) => void;
 
   "message:new": (
-    message: unknown,
+    message: any,
+  ) => void;
+
+  "message:delivery:update": (
+    data: {
+      messageId: string;
+      userId: string;
+    },
+  ) => void;
+
+  "message:read:update": (
+    data: {
+      messageId: string;
+      userId: string;
+    },
   ) => void;
 
   "message:error": (
-    payload: {
+    data: {
       message: string;
     },
   ) => void;
 
   "typing:start": (
-    payload: {
+    data: {
       conversationId: string;
       userId: string;
     },
   ) => void;
 
   "typing:stop": (
-    payload: {
+    data: {
       conversationId: string;
       userId: string;
     },
   ) => void;
 }
-// ==========================================
-// Inter-server
-// ==========================================
 
-export interface InterServerEvents {}
-
-
-
- 
-
-export interface ClientToServerEvents {
-  "message:delivered": (
-    payload: {
-      messageId: string;
-    },
-  ) => void;
+// ⭐ এটা add করো
+export interface InterServerEvents {
+  // Future server-to-server events
 }
 
-export interface ServerToClientEvents {
-  "message:delivery:update": (
-    payload: {
-      messageId: string;
-      userId: string;
-    },
-  ) => void;
+export interface SocketData {
+  userId: string;
 }
 
-// ==========================================
-// Socket
-// ==========================================
-
-export type AuthenticatedSocket = Socket<
-  ClientToServerEvents,
-  ServerToClientEvents,
-  InterServerEvents,
-  SocketData
->;
+export type AuthenticatedSocket =
+  Socket<
+    ClientToServerEvents,
+    ServerToClientEvents,
+    InterServerEvents,
+    SocketData
+  >;
