@@ -1,0 +1,57 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+
+    container_name: chat-backend
+
+    ports:
+      - "5000:5000"
+
+    env_file:
+      - .env
+
+    environment:
+      NODE_ENV: production
+      MONGO_URI: mongodb://mongo:27017/chat_app
+      REDIS_URL: redis://redis:6379
+
+    depends_on:
+      - mongo
+      - redis
+
+    restart: unless-stopped
+
+
+  mongo:
+    image: mongo:8
+
+    container_name: chat-mongo
+
+    ports:
+      - "27017:27017"
+
+    volumes:
+      - mongo_data:/data/db
+
+    restart: unless-stopped
+
+
+  redis:
+    image: redis:8-alpine
+
+    container_name: chat-redis
+
+    ports:
+      - "6379:6379"
+
+    volumes:
+      - redis_data:/data
+
+    restart: unless-stopped
+
+
+volumes:
+  mongo_data:
+  redis_data:

@@ -1,6 +1,7 @@
 import dotenv from "dotenv";
-
-dotenv.config();
+dotenv.config({
+  override: false,
+});
 
 const getRequiredEnv = (
   key: string
@@ -15,6 +16,8 @@ const getRequiredEnv = (
 
   return value;
 };
+
+
 
 export const env = {
   NODE_ENV:
