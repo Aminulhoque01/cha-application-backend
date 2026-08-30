@@ -8,6 +8,7 @@ export interface IMessage {
   senderId: Types.ObjectId;
 
   text: string;
+  isEdited: boolean;
 
   deliveredTo: Types.ObjectId[];
 

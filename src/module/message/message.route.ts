@@ -5,6 +5,7 @@ import { authMiddleware } from "../../middleware/auth.middleware";
 import {
   getMessages,
   sendMessage,
+  updateMessage,
 } from "./message.controller";
 
 const messageRouter = Router();
@@ -19,6 +20,13 @@ messageRouter.get(
   "/:id/messages",
   authMiddleware,
   getMessages,
+);
+
+
+messageRouter.patch(
+  "/:id",
+  authMiddleware,
+  updateMessage,
 );
 
 export default messageRouter;

@@ -363,3 +363,75 @@ export const markMessageAsRead = async (
 
   return message;
 };
+
+
+export const editMessage = async (
+  currentUserId: string,
+  messageId: string,
+  text: string,
+) => {
+  // 1. Validate IDs
+  if (
+    !mongoose.Types.ObjectId.isValid(
+      currentUserId,
+    )
+  ) {
+    throw new Error(
+      "Invalid current user ID",
+    );
+  }
+
+  if (
+    !mongoose.Types.ObjectId.isValid(
+      messageId,
+    )
+  ) {
+    throw new Error(
+      "Invalid message ID",
+    );
+  }
+
+  // 2. Find message
+  const message =
+    await MessageModel.findById(messageId);
+
+  if (!message) {
+    throw new Error(
+      "Message not found",
+    );
+  }
+
+  // 3. Only sender can edit
+  if (
+    message.senderId.toString() !==
+    currentUserId
+  ) {
+    throw new Error(
+      "You can only edit your own message",
+    );
+  }
+
+  // 4. Validate text
+  const trimmedText = text.trim();
+
+  if (!trimmedText) {
+    throw new Error(
+      "Message text cannot be empty",
+    );
+  }
+
+  // 5. Edit
+  message.text = trimmedText;
+
+  message.isEdited = true;
+
+  await message.save();
+
+  // 6. Populate sender
+  await message.populate(
+    "senderId",
+    "phone name avatar bio isOnline lastSeen",
+  );
+
+  return message;
+};

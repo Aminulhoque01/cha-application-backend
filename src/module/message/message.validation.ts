@@ -38,3 +38,17 @@ export const getMessagesSchema = z.object({
       .default(30),
   }),
 });
+
+export const editMessageSchema = z.object({
+  params: z.object({
+    id: z.string().min(1),
+  }),
+
+  body: z.object({
+    text: z
+      .string()
+      .trim()
+      .min(1)
+      .max(5000),
+  }),
+});

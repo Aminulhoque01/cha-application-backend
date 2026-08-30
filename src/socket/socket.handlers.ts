@@ -4,6 +4,7 @@ import { AuthenticatedSocket } from "./socket.types";
 import { setUserOffline, setUserOnline } from "../module/user/user.service";
 import {
   createMessage,
+  editMessage,
   markMessageAsDelivered,
   markMessageAsRead,
 } from "../module/message/message.service";
@@ -69,7 +70,41 @@ export const registerSocketHandlers = (
     },
   );
 
- 
+  socket.on("message:edit", async (payload) => {
+    try {
+      const { messageId, text } = payload;
+
+      if (!messageId) {
+        socket.emit("message:error", {
+          message: "Message ID is required",
+        });
+
+        return;
+      }
+
+      if (!text || !text.trim()) {
+        socket.emit("message:error", {
+          message: "Message text is required",
+        });
+
+        return;
+      }
+
+      const message = await editMessage(userId, messageId, text);
+
+      // Notify everyone in the conversation
+      io.to(message.conversationId.toString()).emit("message:updated", message);
+
+      console.log(`Message ${message._id} edited`);
+    } catch (error) {
+      console.error("message:edit error:", error);
+
+      socket.emit("message:error", {
+        message:
+          error instanceof Error ? error.message : "Failed to edit message",
+      });
+    }
+  });
 
   socket.on("message:delivered", async ({ messageId }) => {
     try {
@@ -96,7 +131,7 @@ export const registerSocketHandlers = (
     }
   });
 
-   // ==========================================
+  // ==========================================
   // Message Read
   // ==========================================
 

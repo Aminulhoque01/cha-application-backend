@@ -25,6 +25,11 @@ const messageSchema = new Schema<IMessage>(
       maxlength: 5000,
     },
 
+    isEdited: {
+      type: Boolean,
+      default: false,
+    },
+
     deliveredTo: {
       type: [
         {
