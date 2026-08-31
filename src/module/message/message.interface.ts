@@ -1,5 +1,11 @@
 import { Types } from "mongoose";
 
+export interface IMessageReaction {
+  userId: Types.ObjectId;
+  emoji: string;
+  createdAt: Date;
+}
+
 export interface IMessage {
   _id: Types.ObjectId;
 
@@ -8,7 +14,14 @@ export interface IMessage {
   senderId: Types.ObjectId;
 
   text: string;
+
   isEdited: boolean;
+
+  isDeleted: boolean;
+
+  deletedAt: Date | null;
+
+  reactions: IMessageReaction[];
 
   deliveredTo: Types.ObjectId[];
 

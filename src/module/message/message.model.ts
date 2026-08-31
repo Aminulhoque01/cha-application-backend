@@ -2,6 +2,30 @@ import { Schema, model } from "mongoose";
 
 import { IMessage } from "./message.interface";
 
+const reactionSchema = new Schema(
+  {
+    userId: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+    },
+
+    emoji: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+
+    createdAt: {
+      type: Date,
+      default: Date.now,
+    },
+  },
+  {
+    _id: false,
+  },
+);
+
 const messageSchema = new Schema<IMessage>(
   {
     conversationId: {
@@ -30,25 +54,34 @@ const messageSchema = new Schema<IMessage>(
       default: false,
     },
 
-    deliveredTo: {
-      type: [
-        {
-          type: Schema.Types.ObjectId,
-          ref: "User",
-        },
-      ],
+    isDeleted: {
+      type: Boolean,
+      default: false,
+    },
+
+    deletedAt: {
+      type: Date,
+      default: null,
+    },
+
+    reactions: {
+      type: [reactionSchema],
       default: [],
     },
 
-    readBy: {
-      type: [
-        {
-          type: Schema.Types.ObjectId,
-          ref: "User",
-        },
-      ],
-      default: [],
-    },
+    deliveredTo: [
+      {
+        type: Schema.Types.ObjectId,
+        ref: "User",
+      },
+    ],
+
+    readBy: [
+      {
+        type: Schema.Types.ObjectId,
+        ref: "User",
+      },
+    ],
   },
   {
     timestamps: true,
@@ -61,4 +94,7 @@ messageSchema.index({
   createdAt: 1,
 });
 
-export const MessageModel = model<IMessage>("Message", messageSchema);
+export const MessageModel = model<IMessage>(
+  "Message",
+  messageSchema,
+);

@@ -4,6 +4,7 @@ import { AuthenticatedSocket } from "./socket.types";
 import { setUserOffline, setUserOnline } from "../module/user/user.service";
 import {
   createMessage,
+  deleteMessage,
   editMessage,
   markMessageAsDelivered,
   markMessageAsRead,
@@ -69,6 +70,36 @@ export const registerSocketHandlers = (
       }
     },
   );
+
+  socket.on("message:delete", async (payload) => {
+    try {
+      const { messageId } = payload;
+
+      if (!messageId) {
+        socket.emit("message:error", {
+          message: "Message ID is required",
+        });
+
+        return;
+      }
+
+      const deletedMessage = await deleteMessage(userId, messageId);
+
+      io.to(deletedMessage.conversationId).emit(
+        "message:deleted",
+        deletedMessage,
+      );
+
+      console.log(`Message ${messageId} deleted`);
+    } catch (error) {
+      console.error("message:delete error:", error);
+
+      socket.emit("message:error", {
+        message:
+          error instanceof Error ? error.message : "Failed to delete message",
+      });
+    }
+  });
 
   socket.on("message:edit", async (payload) => {
     try {

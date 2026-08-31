@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 
-import { createMessage, editMessage, getConversationMessages } from "./message.service";
+import { addReaction, createMessage, deleteMessage, editMessage, getConversationMessages } from "./message.service";
 
 import { editMessageSchema, getMessagesSchema, sendMessageSchema } from "./message.validation";
 
@@ -210,3 +210,98 @@ export const updateMessage = async (
     });
   }
 };
+
+export const deleteMessageController = async (
+  req: Request,
+  res: Response,
+) => {
+  try {
+    const currentUserId =
+      req.user?.userId;
+
+    if (!currentUserId) {
+      return res.status(401).json({
+        success: false,
+        message: "Unauthorized",
+      });
+    }
+
+    const { id: messageId } =
+      req.params;
+
+    if (!messageId) {
+      return res.status(400).json({
+        success: false,
+        message: "Message ID is required",
+      });
+    }
+
+    const data =
+      await deleteMessage(
+        currentUserId,
+        messageId as string,
+      );
+
+    return res.status(200).json({
+      success: true,
+      message:
+        "Message deleted successfully",
+      data,
+    });
+  } catch (error) {
+    console.error(
+      "Delete message error:",
+      error,
+    );
+
+    const message =
+      error instanceof Error
+        ? error.message
+        : "Failed to delete message";
+
+    return res.status(400).json({
+      success: false,
+      message,
+    });
+  }
+};
+
+export const addReactionController = async (
+  req: Request,
+  res: Response,
+) => {
+  try {
+    const { messageId } = req.params;
+    const { emoji } = req.body;
+
+    const userId = req.user?.userId;
+
+    const result = await addReaction(
+      userId as string,
+      messageId as string,
+      emoji,
+    );
+
+    return res.status(200).json({
+      success: true,
+      message:
+        result.action === "added"
+          ? "Reaction added successfully"
+          : "Reaction removed successfully",
+      data: result.message,
+    });
+  } catch (error) {
+    console.error("Add reaction error:", error);
+
+    return res.status(400).json({
+      success: false,
+      message:
+        error instanceof Error
+          ? error.message
+          : "Failed to add reaction",
+    });
+  }
+};
+
+
+ 

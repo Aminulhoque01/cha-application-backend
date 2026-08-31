@@ -1,9 +1,12 @@
 import { io } from "socket.io-client";
 
-const token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI2YTkxNjhhZTE3YWQ4ODRmMmFmMmExYjgiLCJpYXQiOjE3ODgwODY4MDUsImV4cCI6MTc4ODY5MTYwNX0.xYMrOy113sYfn8Dqd7m8IX3p1QV_Q69KGq45NDLQEh0";
+const token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI2YTk0NDc5MDFhNDI2Yzc5MDc0YWQ0ODMiLCJpYXQiOjE3ODgxMDI1NDQsImV4cCI6MTc4ODcwNzM0NH0.eQElqEdzinDeWYafVIct9GDUwffVkBBot8wHpkIlj2k";
+
+
+ 
 
 const conversationId =
-  "6a9168c317ad884f2af2a1bc";
+  "6a94529283f2c840bcda7042";
 
 const socket = io(
   "http://localhost:5000",
@@ -38,6 +41,15 @@ socket.on(
   },
 );
 
+socket.on(
+  "message:deleted",
+  (data) => {
+    console.log(
+      "MESSAGE DELETED:",
+      data,
+    );
+  },
+);
 // Receive new message
 socket.on(
   "message:new",
@@ -47,7 +59,7 @@ socket.on(
       message,
     );
 
-    // First mark as delivered
+    // Mark as delivered
     socket.emit(
       "message:delivered",
       {
@@ -60,7 +72,7 @@ socket.on(
       message._id,
     );
 
-    // Then mark as read
+    // Mark as read
     setTimeout(() => {
       socket.emit(
         "message:read",
@@ -74,6 +86,17 @@ socket.on(
         message._id,
       );
     }, 1000);
+  },
+);
+
+// ⭐ Receive edited message
+socket.on(
+  "message:updated",
+  (message) => {
+    console.log(
+      "USER B received MESSAGE UPDATED:",
+      message,
+    );
   },
 );
 

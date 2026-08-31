@@ -1,7 +1,8 @@
-import mongoose from "mongoose";
+import mongoose, { Types } from "mongoose";
 
 import { MessageModel } from "./message.model";
 import { ConversationModel } from "../conversation/conversation.model";
+import { isConversationMember } from "../conversation/conversation.service";
 
 export const createMessage = async (
   currentUserId: string,
@@ -435,3 +436,157 @@ export const editMessage = async (
 
   return message;
 };
+
+
+export const deleteMessage = async (
+  currentUserId: string,
+  messageId: string,
+) => {
+  // Validate current user ID
+  if (
+    !mongoose.Types.ObjectId.isValid(
+      currentUserId,
+    )
+  ) {
+    throw new Error(
+      "Invalid current user ID",
+    );
+  }
+
+  // Validate message ID
+  if (
+    !mongoose.Types.ObjectId.isValid(
+      messageId,
+    )
+  ) {
+    throw new Error(
+      "Invalid message ID",
+    );
+  }
+
+  // Find message
+  const message =
+    await MessageModel.findById(
+      messageId,
+    );
+
+  if (!message) {
+    throw new Error(
+      "Message not found",
+    );
+  }
+
+  // Check ownership
+  if (
+    message.senderId.toString() !==
+    currentUserId
+  ) {
+    throw new Error(
+      "You can only delete your own messages",
+    );
+  }
+
+  // Prevent duplicate deletion
+  if (message.isDeleted) {
+    throw new Error(
+      "Message is already deleted",
+    );
+  }
+
+  // Soft delete
+  message.isDeleted = true;
+  message.deletedAt = new Date();
+
+  // // Hide original text
+  // message.text = "";
+
+  // Save
+  await message.save();
+
+  return {
+    messageId: message._id.toString(),
+
+    conversationId:
+      message.conversationId.toString(),
+
+    isDeleted: true,
+
+    deletedAt:
+      message.deletedAt,
+  };
+};
+
+
+export const addReaction = async (
+  userId: string,
+  messageId: string,
+  emoji: string,
+) => {
+  if (!Types.ObjectId.isValid(messageId)) {
+    throw new Error("Invalid message ID");
+  }
+
+  if (!emoji?.trim()) {
+    throw new Error("Emoji is required");
+  }
+
+  const message = await MessageModel.findById(messageId);
+
+  if (!message) {
+    throw new Error("Message not found");
+  }
+
+  if (message.isDeleted) {
+    throw new Error("Cannot react to a deleted message");
+  }
+
+  const isMember = await isConversationMember(
+    message.conversationId.toString(),
+    userId,
+  );
+
+  if (!isMember) {
+    throw new Error(
+      "You are not a member of this conversation",
+    );
+  }
+
+  const existingReactionIndex =
+    message.reactions.findIndex(
+      (reaction) =>
+        reaction.userId.toString() === userId &&
+        reaction.emoji === emoji,
+    );
+
+  // Same emoji again = remove it
+  if (existingReactionIndex !== -1) {
+    message.reactions.splice(
+      existingReactionIndex,
+      1,
+    );
+
+    await message.save();
+
+    return {
+      action: "removed" as const,
+      message,
+    };
+  }
+
+  // Add new reaction
+  message.reactions.push({
+    userId: new Types.ObjectId(userId),
+    emoji,
+    createdAt: new Date(),
+  });
+
+  await message.save();
+
+  return {
+    action: "added" as const,
+    message,
+  };
+};
+
+
+ 

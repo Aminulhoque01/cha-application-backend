@@ -8,6 +8,13 @@ export interface ClientToServerEvents {
   "message:send": (payload: { conversationId: string; text: string }) => void;
 
   "message:edit": (payload: { messageId: string; text: string }) => void;
+  "message:delete": (payload: { messageId: string }) => void;
+  "message:deleted": (data: {
+    messageId: string;
+    conversationId: string;
+    isDeleted: boolean;
+    deletedAt: Date | null;
+  }) => void;
 
   "message:delivered": (payload: { messageId: string }) => void;
 
@@ -36,6 +43,7 @@ export interface ServerToClientEvents {
   }) => void;
 
   "message:edit": (payload: { messageId: string; text: string }) => void;
+  "message:delete": (payload: { messageId: string }) => void;
 
   "message:read:update": (data: { messageId: string; userId: string }) => void;
 

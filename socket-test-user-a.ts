@@ -1,9 +1,11 @@
 import { io } from "socket.io-client";
 
-const token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI2YThiZWFlZjg2N2FlYzY0ZjYwZmQ3YmMiLCJpYXQiOjE3ODc2NTM1MjAsImV4cCI6MTc4ODI1ODMyMH0.4Fzw3X1mui60Qp6hBfspvEEETc1iYWS_gvIQwulsH1M";
+const token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI2YTk0NTI2MzgzZjJjODQwYmNkYTcwM2MiLCJpYXQiOjE3ODgxMDUzMTUsImV4cCI6MTc4ODcxMDExNX0.d3DcKq5S9ASX2HAtCrnynD2R69ncZrKs2uQ_FPGy6Bs";
 
 const conversationId =
-  "6a9168c317ad884f2af2a1bc";
+  "6a94529283f2c840bcda7042";
+
+let messageId: string | null = null;
 
 const socket = io(
   "http://localhost:5000",
@@ -36,13 +38,13 @@ socket.on(
       data,
     );
 
-    // Send message after joining
+    // Send message
     setTimeout(() => {
       socket.emit(
         "message:send",
         {
           conversationId,
-          text: "Hello read status test",
+          text: "Hello edit test",
         },
       );
 
@@ -53,7 +55,7 @@ socket.on(
   },
 );
 
-// User A receives the message too
+// Receive new message
 socket.on(
   "message:new",
   (message) => {
@@ -61,10 +63,89 @@ socket.on(
       "USER A received MESSAGE:",
       message,
     );
+
+    // Only save User A's own message ID
+    if (
+      message.senderId?._id ===
+      "6a94526383f2c840bcda703c"
+    ) {
+      messageId = message._id;
+
+      console.log(
+        "USER A saved MESSAGE ID:",
+        messageId,
+      );
+
+      // Edit after 2 seconds
+      setTimeout(() => {
+        if (!messageId) {
+          return;
+        }
+
+        socket.emit(
+          "message:edit",
+          {
+            messageId,
+            text: "Hello, this message was edited!",
+          },
+        );
+
+        console.log(
+          "USER A sent MESSAGE EDIT:",
+          messageId,
+        );
+      }, 2000);
+    }
   },
 );
 
-// Delivered update
+socket.on(
+  "message:new",
+  (message) => {
+    console.log(
+      "USER A received MESSAGE:",
+      message,
+    );
+
+    if (
+      message.senderId?._id ===
+      "6a94526383f2c840bcda703c"
+    ) {
+      messageId = message._id;
+
+      setTimeout(() => {
+        if (!messageId) {
+          return;
+        }
+
+        socket.emit(
+          "message:delete",
+          {
+            messageId,
+          },
+        );
+
+        console.log(
+          "USER A sent DELETE:",
+          messageId,
+        );
+      }, 4000);
+    }
+  },
+);
+
+// Updated message
+socket.on(
+  "message:updated",
+  (message) => {
+    console.log(
+      "USER A received MESSAGE UPDATED:",
+      message,
+    );
+  },
+);
+
+// Delivery update
 socket.on(
   "message:delivery:update",
   (data) => {
@@ -75,7 +156,7 @@ socket.on(
   },
 );
 
-// ⭐ Read update
+// Read update
 socket.on(
   "message:read:update",
   (data) => {
