@@ -3,6 +3,7 @@ import { Server } from "socket.io";
 import { AuthenticatedSocket } from "./socket.types";
 import { setUserOffline, setUserOnline } from "../module/user/user.service";
 import {
+  addReaction,
   createMessage,
   deleteMessage,
   editMessage,
@@ -70,6 +71,39 @@ export const registerSocketHandlers = (
       }
     },
   );
+
+  socket.on("message:reaction", async (payload) => {
+    try {
+      const { messageId, emoji } = payload;
+
+      const result = await addReaction(userId, messageId, emoji);
+
+      const conversationId = result.message.conversationId.toString();
+
+      io.to(conversationId).emit("message:reaction:update", {
+        messageId: result.message._id.toString(),
+
+        conversationId,
+
+        action: result.action,
+
+        reactionSummary: result.reactionSummary,
+      });
+
+      console.log(
+        `Reaction ${result.action}:`,
+        emoji,
+        `on message ${messageId}`,
+      );
+    } catch (error) {
+      console.error("message:reaction error:", error);
+
+      socket.emit("message:error", {
+        message:
+          error instanceof Error ? error.message : "Failed to update reaction",
+      });
+    }
+  });
 
   socket.on("message:delete", async (payload) => {
     try {

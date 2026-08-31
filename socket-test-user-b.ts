@@ -1,12 +1,12 @@
 import { io } from "socket.io-client";
 
-const token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI2YTk0NDc5MDFhNDI2Yzc5MDc0YWQ0ODMiLCJpYXQiOjE3ODgxMDI1NDQsImV4cCI6MTc4ODcwNzM0NH0.eQElqEdzinDeWYafVIct9GDUwffVkBBot8wHpkIlj2k";
+const token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI2YTkxNjhhZTE3YWQ4ODRmMmFmMmExYjgiLCJpYXQiOjE3ODgxNTAxODcsImV4cCI6MTc4ODc1NDk4N30.aJR2klQ5kGtBKMWy2HmeYObWaKxTlx4YbCOJv3HFwtg";
 
 
  
 
 const conversationId =
-  "6a94529283f2c840bcda7042";
+  "6a9168c317ad884f2af2a1bc";
 
 const socket = io(
   "http://localhost:5000",
@@ -107,6 +107,20 @@ socket.on(
     console.log(
       "USER B received DELIVERY UPDATE:",
       data,
+    );
+  },
+);
+
+socket.on(
+  "message:reaction:update",
+  (data) => {
+    console.log(
+      "REACTION UPDATE:",
+      JSON.stringify(
+        data,
+        null,
+        2,
+      ),
     );
   },
 );

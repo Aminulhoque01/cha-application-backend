@@ -1,11 +1,12 @@
 import { io } from "socket.io-client";
 
-const token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI2YTk0NTI2MzgzZjJjODQwYmNkYTcwM2MiLCJpYXQiOjE3ODgxMDUzMTUsImV4cCI6MTc4ODcxMDExNX0.d3DcKq5S9ASX2HAtCrnynD2R69ncZrKs2uQ_FPGy6Bs";
+const token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI2YThiZWFlZjg2N2FlYzY0ZjYwZmQ3YmMiLCJpYXQiOjE3ODgxNDU2NTgsImV4cCI6MTc4ODc1MDQ1OH0.A4gfHEUivY_X463zjtikQ792c333cYU-M8bLER34JeU";
 
 const conversationId =
-  "6a94529283f2c840bcda7042";
+  "6a9168c317ad884f2af2a1bc";
 
 let messageId: string | null = null;
+ 
 
 const socket = io(
   "http://localhost:5000",
@@ -50,6 +51,49 @@ socket.on(
 
       console.log(
         "USER A sent MESSAGE",
+      );
+    }, 2000);
+  },
+);
+
+socket.on(
+  "conversation:joined",
+  () => {
+    setTimeout(() => {
+      socket.emit(
+        "message:send",
+        {
+          conversationId,
+          text: "Reaction socket test",
+        },
+      );
+
+      console.log(
+        "USER A sent MESSAGE",
+      );
+    }, 1000);
+  },
+);
+
+socket.on(
+  "message:new",
+  (message) => {
+    console.log(
+      "USER A received MESSAGE:",
+      message,
+    );
+
+    setTimeout(() => {
+      socket.emit(
+        "message:reaction",
+        {
+          messageId: message._id,
+          emoji: "❤️",
+        },
+      );
+
+      console.log(
+        "USER A sent REACTION ❤️",
       );
     }, 2000);
   },
@@ -134,6 +178,37 @@ socket.on(
   },
 );
 
+socket.on(
+  "message:new",
+  (message) => {
+    console.log(
+      "USER A received MESSAGE:",
+      message,
+    );
+
+    if (
+      message.senderId._id ===
+      "YOUR_USER_A_ID"
+    ) {
+      messageId = message._id;
+
+      setTimeout(() => {
+        socket.emit(
+          "message:reaction",
+          {
+            messageId,
+            emoji: "❤️",
+          },
+        );
+
+        console.log(
+          "USER A sent REACTION ❤️",
+        );
+      }, 2000);
+    }
+  },
+);
+
 // Updated message
 socket.on(
   "message:updated",
@@ -163,6 +238,20 @@ socket.on(
     console.log(
       "USER A received READ UPDATE:",
       data,
+    );
+  },
+);
+
+socket.on(
+  "message:reaction:update",
+  (data) => {
+    console.log(
+      "REACTION UPDATE:",
+      JSON.stringify(
+        data,
+        null,
+        2,
+      ),
     );
   },
 );

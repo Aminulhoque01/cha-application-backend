@@ -7,6 +7,8 @@ export interface ClientToServerEvents {
 
   "message:send": (payload: { conversationId: string; text: string }) => void;
 
+  "message:reaction": (payload: { messageId: string; emoji: string }) => void;
+
   "message:edit": (payload: { messageId: string; text: string }) => void;
   "message:delete": (payload: { messageId: string }) => void;
   "message:deleted": (data: {
@@ -36,6 +38,19 @@ export interface ServerToClientEvents {
   }) => void;
 
   "message:new": (message: any) => void;
+ 
+
+  "message:reaction:update": (data: {
+    messageId: string;
+    conversationId: string;
+    action: "added" | "removed";
+
+    reactionSummary: Array<{
+      emoji: string;
+      count: number;
+      userIds: string[];
+    }>;
+  }) => void;
 
   "message:delivery:update": (data: {
     messageId: string;
