@@ -7,14 +7,12 @@ export const sendMessageSchema = z.object({
 
   text: z
     .string()
-    .trim()
-    .min(1, "Message text is required")
-    .max(
-      5000,
-      "Message cannot exceed 5000 characters",
-    ),
-});
+    .min(1, "Message text is required"),
 
+  replyTo: z
+    .string()
+    .optional(),
+});
 
 export const getMessagesSchema = z.object({
   params: z.object({

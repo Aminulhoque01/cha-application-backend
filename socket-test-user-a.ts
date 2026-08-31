@@ -5,283 +5,176 @@ const token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI2YThiZWFlZjg2
 const conversationId =
   "6a9168c317ad884f2af2a1bc";
 
-let messageId: string | null = null;
+  
  
 
+const currentUserId =
+"6a8beaef867aec64f60fd7bc";
+
+let originalMessageId:
+| string
+| null = null;
+
+let replySent = false;
+
 const socket = io(
-  "http://localhost:5000",
-  {
-    auth: {
-      token,
-    },
-  },
+"http://localhost:5000",
+{
+auth: {
+token,
+},
+},
 );
 
-socket.on("connect", () => {
-  console.log(
-    "USER A connected:",
-    socket.id,
-  );
+socket.on(
+"connect",
+() => {
+console.log(
+"USER A connected:",
+socket.id,
+);
+ 
+socket.emit(
+  "conversation:join",
+  {
+    conversationId,
+  },
+);
+ 
 
+},
+);
+
+socket.on(
+"conversation:joined",
+(data) => {
+console.log(
+"USER A joined:",
+data,
+);
+
+ 
+// Send original message
+setTimeout(() => {
   socket.emit(
-    "conversation:join",
+    "message:send",
     {
       conversationId,
+      text: "Hello, this is the original message",
     },
   );
-});
 
-socket.on(
-  "conversation:joined",
-  (data) => {
-    console.log(
-      "USER A joined:",
-      data,
-    );
+  console.log(
+    "USER A sent ORIGINAL MESSAGE",
+  );
+}, 1000);
+ 
 
-    // Send message
-    setTimeout(() => {
-      socket.emit(
-        "message:send",
-        {
-          conversationId,
-          text: "Hello edit test",
-        },
-      );
-
-      console.log(
-        "USER A sent MESSAGE",
-      );
-    }, 2000);
-  },
+},
 );
 
 socket.on(
-  "conversation:joined",
-  () => {
-    setTimeout(() => {
-      socket.emit(
-        "message:send",
-        {
-          conversationId,
-          text: "Reaction socket test",
-        },
-      );
-
-      console.log(
-        "USER A sent MESSAGE",
-      );
-    }, 1000);
-  },
+"message:new",
+(message) => {
+console.log(
+"USER A received MESSAGE:",
+JSON.stringify(
+message,
+null,
+2,
+),
 );
 
-socket.on(
-  "message:new",
-  (message) => {
-    console.log(
-      "USER A received MESSAGE:",
-      message,
-    );
+ 
+// Find the original message sent by User A
+if (
+  message.senderId?._id ===
+    currentUserId &&
+  message.text ===
+    "Hello, this is the original message" &&
+  !originalMessageId
+) {
+  originalMessageId =
+    message._id;
 
-    setTimeout(() => {
-      socket.emit(
-        "message:reaction",
-        {
-          messageId: message._id,
-          emoji: "❤️",
-        },
-      );
+  console.log(
+    "USER A saved ORIGINAL MESSAGE ID:",
+    originalMessageId,
+  );
 
-      console.log(
-        "USER A sent REACTION ❤️",
-      );
-    }, 2000);
-  },
-);
-
-// Receive new message
-socket.on(
-  "message:new",
-  (message) => {
-    console.log(
-      "USER A received MESSAGE:",
-      message,
-    );
-
-    // Only save User A's own message ID
+  // Send reply after 2 seconds
+  setTimeout(() => {
     if (
-      message.senderId?._id ===
-      "6a94526383f2c840bcda703c"
+      !originalMessageId ||
+      replySent
     ) {
-      messageId = message._id;
-
-      console.log(
-        "USER A saved MESSAGE ID:",
-        messageId,
-      );
-
-      // Edit after 2 seconds
-      setTimeout(() => {
-        if (!messageId) {
-          return;
-        }
-
-        socket.emit(
-          "message:edit",
-          {
-            messageId,
-            text: "Hello, this message was edited!",
-          },
-        );
-
-        console.log(
-          "USER A sent MESSAGE EDIT:",
-          messageId,
-        );
-      }, 2000);
+      return;
     }
-  },
-);
 
-socket.on(
-  "message:new",
-  (message) => {
+    socket.emit(
+      "message:send",
+      {
+        conversationId,
+        text: "This is a reply to the previous message",
+        replyTo: originalMessageId,
+      },
+    );
+
+    replySent = true;
+
     console.log(
-      "USER A received MESSAGE:",
-      message,
+      "USER A sent REPLY MESSAGE:",
+      originalMessageId,
     );
+  }, 2000);
+}
 
-    if (
-      message.senderId?._id ===
-      "6a94526383f2c840bcda703c"
-    ) {
-      messageId = message._id;
+// Detect reply message
+if (message.replyTo) {
+  console.log(
+    "⭐ USER A received a REPLY MESSAGE",
+  );
 
-      setTimeout(() => {
-        if (!messageId) {
-          return;
-        }
+  console.log(
+    "REPLY DATA:",
+    JSON.stringify(
+      message.replyTo,
+      null,
+      2,
+    ),
+  );
+}
+ 
 
-        socket.emit(
-          "message:delete",
-          {
-            messageId,
-          },
-        );
-
-        console.log(
-          "USER A sent DELETE:",
-          messageId,
-        );
-      }, 4000);
-    }
-  },
+},
 );
 
 socket.on(
-  "message:new",
-  (message) => {
-    console.log(
-      "USER A received MESSAGE:",
-      message,
-    );
-
-    if (
-      message.senderId._id ===
-      "YOUR_USER_A_ID"
-    ) {
-      messageId = message._id;
-
-      setTimeout(() => {
-        socket.emit(
-          "message:reaction",
-          {
-            messageId,
-            emoji: "❤️",
-          },
-        );
-
-        console.log(
-          "USER A sent REACTION ❤️",
-        );
-      }, 2000);
-    }
-  },
+"message:error",
+(error) => {
+console.error(
+"USER A message error:",
+error,
 );
-
-// Updated message
-socket.on(
-  "message:updated",
-  (message) => {
-    console.log(
-      "USER A received MESSAGE UPDATED:",
-      message,
-    );
-  },
-);
-
-// Delivery update
-socket.on(
-  "message:delivery:update",
-  (data) => {
-    console.log(
-      "USER A received DELIVERY UPDATE:",
-      data,
-    );
-  },
-);
-
-// Read update
-socket.on(
-  "message:read:update",
-  (data) => {
-    console.log(
-      "USER A received READ UPDATE:",
-      data,
-    );
-  },
+},
 );
 
 socket.on(
-  "message:reaction:update",
-  (data) => {
-    console.log(
-      "REACTION UPDATE:",
-      JSON.stringify(
-        data,
-        null,
-        2,
-      ),
-    );
-  },
+"conversation:error",
+(error) => {
+console.error(
+"USER A conversation error:",
+error,
+);
+},
 );
 
 socket.on(
-  "message:error",
-  (error) => {
-    console.error(
-      "USER A message error:",
-      error,
-    );
-  },
+"connect_error",
+(error) => {
+console.error(
+"USER A connection error:",
+error.message,
 );
-
-socket.on(
-  "conversation:error",
-  (error) => {
-    console.error(
-      "USER A conversation error:",
-      error,
-    );
-  },
-);
-
-socket.on(
-  "connect_error",
-  (error) => {
-    console.error(
-      "USER A connection error:",
-      error.message,
-    );
-  },
+},
 );

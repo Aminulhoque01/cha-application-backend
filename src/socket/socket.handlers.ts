@@ -29,40 +29,26 @@ export const registerSocketHandlers = (
 
   socket.on(
     "message:send",
-    async (payload: { conversationId: string; text: string }) => {
+    async (payload: {
+      conversationId: string;
+      text: string;
+      replyTo?: string;
+    }) => {
       try {
-        const { conversationId, text } = payload;
+        const { conversationId, text, replyTo } = payload;
 
-        // Basic validation
-        if (!conversationId) {
-          socket.emit("message:error", {
-            message: "Conversation ID is required",
-          });
+        const message = await createMessage(
+          socket.data.userId,
+          conversationId,
+          text,
+          replyTo,
+        );
 
-          return;
-        }
-
-        if (!text || !text.trim()) {
-          socket.emit("message:error", {
-            message: "Message text is required",
-          });
-
-          return;
-        }
-
-        // Create message
-        // This already verifies:
-        // 1. Valid user
-        // 2. Valid conversation
-        // 3. User is a participant
-        const message = await createMessage(userId, conversationId, text);
-
-        // Broadcast ONLY to this conversation room
         io.to(conversationId).emit("message:new", message);
 
         console.log(`Message ${message._id} sent to room ${conversationId}`);
       } catch (error) {
-        console.error("Socket message:send error:", error);
+        console.error("message:send error:", error);
 
         socket.emit("message:error", {
           message:

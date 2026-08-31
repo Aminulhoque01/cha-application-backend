@@ -26,6 +26,7 @@ export interface IMessage {
   deliveredTo: Types.ObjectId[];
 
   readBy: Types.ObjectId[];
+  replyTo?: Types.ObjectId | null;
 
   createdAt: Date;
 

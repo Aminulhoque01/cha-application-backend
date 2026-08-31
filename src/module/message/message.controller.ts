@@ -37,10 +37,15 @@ export const sendMessage = async (req: Request, res: Response) => {
       });
     }
 
-    const { conversationId, text } = result.data;
+    const { conversationId, text, replyTo } = result.data;
 
-    // Create message
-    const message = await createMessage(currentUserId, conversationId, text);
+    // Create normal or reply message
+    const message = await createMessage(
+      currentUserId,
+      conversationId,
+      text,
+      replyTo,
+    );
 
     return res.status(201).json({
       success: true,

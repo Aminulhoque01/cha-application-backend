@@ -82,6 +82,12 @@ const messageSchema = new Schema<IMessage>(
         ref: "User",
       },
     ],
+
+    replyTo: {
+      type: Schema.Types.ObjectId,
+      ref: "Message",
+      default: null,
+    },
   },
   {
     timestamps: true,
@@ -94,7 +100,4 @@ messageSchema.index({
   createdAt: 1,
 });
 
-export const MessageModel = model<IMessage>(
-  "Message",
-  messageSchema,
-);
+export const MessageModel = model<IMessage>("Message", messageSchema);

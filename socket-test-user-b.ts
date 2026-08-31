@@ -41,6 +41,21 @@ socket.on(
   },
 );
 
+socket.on("message:new", (message) => {
+  console.log(
+    "USER B received:",
+    JSON.stringify(message, null, 2),
+  );
+
+  if (message.replyTo) {
+    console.log("⭐ REPLY MESSAGE RECEIVED");
+    console.log(
+      "REPLY TO:",
+      JSON.stringify(message.replyTo, null, 2),
+    );
+  }
+});
+
 socket.on(
   "message:deleted",
   (data) => {

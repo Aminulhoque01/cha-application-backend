@@ -9,6 +9,7 @@ export const createMessage = async (
   currentUserId: string,
   conversationId: string,
   text: string,
+  replyTo?: string,
 ) => {
   // 1. Validate current user ID
   if (!mongoose.Types.ObjectId.isValid(currentUserId)) {
@@ -21,33 +22,81 @@ export const createMessage = async (
   }
 
   // 3. Find conversation and make sure
-  //    current user is a participant
+  // current user is a participant
   const conversation = await ConversationModel.findOne({
     _id: new mongoose.Types.ObjectId(conversationId),
-
     participants: new mongoose.Types.ObjectId(currentUserId),
   });
 
   if (!conversation) {
-    throw new Error("Conversation not found or you are not a member");
+    throw new Error(
+      "Conversation not found or you are not a member",
+    );
   }
 
-  // 4. Create message
-  const message = await MessageModel.create({
-    conversationId: new mongoose.Types.ObjectId(conversationId),
+  // 4. Validate reply message
+  if (replyTo) {
+    if (!mongoose.Types.ObjectId.isValid(replyTo)) {
+      throw new Error("Invalid reply message ID");
+    }
 
-    senderId: new mongoose.Types.ObjectId(currentUserId),
+    const replyMessage = await MessageModel.findById(
+      replyTo,
+    );
+
+    if (!replyMessage) {
+      throw new Error("Reply message not found");
+    }
+
+    if (
+      replyMessage.conversationId.toString() !==
+      conversationId
+    ) {
+      throw new Error(
+        "Reply message belongs to another conversation",
+      );
+    }
+  }
+
+  // 5. Create message
+  const message = await MessageModel.create({
+    conversationId:
+      new mongoose.Types.ObjectId(conversationId),
+
+    senderId:
+      new mongoose.Types.ObjectId(currentUserId),
 
     text: text.trim(),
+
+    replyTo: replyTo
+      ? new mongoose.Types.ObjectId(replyTo)
+      : null,
   });
 
-  // 5. Update conversation lastMessage
+  // 6. Update conversation lastMessage
   conversation.lastMessage = message._id;
 
   await conversation.save();
 
-  // 6. Populate sender
-  await message.populate("senderId", "phone name avatar bio isOnline lastSeen");
+  // 7. Populate sender
+  await message.populate(
+    "senderId",
+    "phone name avatar bio isOnline lastSeen",
+  );
+
+  // 8. Populate reply message
+  await message.populate({
+    path: "replyTo",
+
+    select:
+      "text senderId isDeleted createdAt",
+
+    populate: {
+      path: "senderId",
+
+      select: "name avatar",
+    },
+  });
 
   return message;
 };

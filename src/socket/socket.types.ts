@@ -5,7 +5,11 @@ export interface ClientToServerEvents {
 
   "conversation:leave": (payload: { conversationId: string }) => void;
 
-  "message:send": (payload: { conversationId: string; text: string }) => void;
+  "message:send": (payload: {
+    conversationId: string;
+    text: string;
+    replyTo?: string;
+  }) => void;
 
   "message:reaction": (payload: { messageId: string; emoji: string }) => void;
 
@@ -38,7 +42,6 @@ export interface ServerToClientEvents {
   }) => void;
 
   "message:new": (message: any) => void;
- 
 
   "message:reaction:update": (data: {
     messageId: string;
