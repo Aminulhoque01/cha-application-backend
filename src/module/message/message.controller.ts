@@ -1,17 +1,23 @@
 import { Request, Response } from "express";
 
-import { addReaction, createMessage, deleteMessage, editMessage, getConversationMessages } from "./message.service";
+import {
+  addReaction,
+  createMessage,
+  deleteMessage,
+  editMessage,
+  getConversationMessages,
+} from "./message.service";
 
-import { editMessageSchema, getMessagesSchema, sendMessageSchema } from "./message.validation";
+import {
+  editMessageSchema,
+  getMessagesSchema,
+  sendMessageSchema,
+} from "./message.validation";
 
-export const sendMessage = async (
-  req: Request,
-  res: Response,
-) => {
+export const sendMessage = async (req: Request, res: Response) => {
   try {
     // Current logged-in user
-    const currentUserId =
-      req.user?.userId;
+    const currentUserId = req.user?.userId;
 
     if (!currentUserId) {
       return res.status(401).json({
@@ -21,10 +27,7 @@ export const sendMessage = async (
     }
 
     // Validate request body
-    const result =
-      sendMessageSchema.safeParse(
-        req.body,
-      );
+    const result = sendMessageSchema.safeParse(req.body);
 
     if (!result.success) {
       return res.status(400).json({
@@ -34,35 +37,21 @@ export const sendMessage = async (
       });
     }
 
-    const {
-      conversationId,
-      text,
-    } = result.data;
+    const { conversationId, text } = result.data;
 
     // Create message
-    const message =
-      await createMessage(
-        currentUserId,
-        conversationId,
-        text,
-      );
+    const message = await createMessage(currentUserId, conversationId, text);
 
     return res.status(201).json({
       success: true,
-      message:
-        "Message sent successfully",
+      message: "Message sent successfully",
       data: message,
     });
   } catch (error) {
-    console.error(
-      "Send message error:",
-      error,
-    );
+    console.error("Send message error:", error);
 
     const message =
-      error instanceof Error
-        ? error.message
-        : "Failed to send message";
+      error instanceof Error ? error.message : "Failed to send message";
 
     return res.status(400).json({
       success: false,
@@ -71,12 +60,7 @@ export const sendMessage = async (
   }
 };
 
-
-
-export const getMessages = async (
-  req: Request,
-  res: Response,
-) => {
+export const getMessages = async (req: Request, res: Response) => {
   try {
     const currentUserId = req.user?.userId;
 
@@ -88,11 +72,10 @@ export const getMessages = async (
     }
 
     // Validate params + query
-    const result =
-      getMessagesSchema.safeParse({
-        params: req.params,
-        query: req.query,
-      });
+    const result = getMessagesSchema.safeParse({
+      params: req.params,
+      query: req.query,
+    });
 
     if (!result.success) {
       return res.status(400).json({
@@ -102,39 +85,27 @@ export const getMessages = async (
       });
     }
 
-    const {
-      id: conversationId,
-    } = result.data.params;
+    const { id: conversationId } = result.data.params;
 
-    const {
+    const { page, limit } = result.data.query;
+
+    const data = await getConversationMessages(
+      currentUserId,
+      conversationId,
       page,
       limit,
-    } = result.data.query;
-
-    const data =
-      await getConversationMessages(
-        currentUserId,
-        conversationId,
-        page,
-        limit,
-      );
+    );
 
     return res.status(200).json({
       success: true,
-      message:
-        "Messages fetched successfully",
+      message: "Messages fetched successfully",
       data,
     });
   } catch (error) {
-    console.error(
-      "Get messages error:",
-      error,
-    );
+    console.error("Get messages error:", error);
 
     const message =
-      error instanceof Error
-        ? error.message
-        : "Failed to fetch messages";
+      error instanceof Error ? error.message : "Failed to fetch messages";
 
     return res.status(400).json({
       success: false,
@@ -143,14 +114,9 @@ export const getMessages = async (
   }
 };
 
-
-export const updateMessage = async (
-  req: Request,
-  res: Response,
-) => {
+export const updateMessage = async (req: Request, res: Response) => {
   try {
-    const currentUserId =
-      req.user?.userId;
+    const currentUserId = req.user?.userId;
 
     if (!currentUserId) {
       return res.status(401).json({
@@ -159,65 +125,44 @@ export const updateMessage = async (
       });
     }
 
-    const result =
-      editMessageSchema.safeParse({
-        params: req.params,
-        body: req.body,
-      });
+    const result = editMessageSchema.safeParse({
+      params: req.params,
+      body: req.body,
+    });
 
     if (!result.success) {
       return res.status(400).json({
         success: false,
-        message:
-          "Invalid message data",
+        message: "Invalid message data",
         errors: result.error.flatten(),
       });
     }
 
-    const {
-      id: messageId,
-    } = result.data.params;
+    const { id: messageId } = result.data.params;
 
-    const {
-      text,
-    } = result.data.body;
+    const { text } = result.data.body;
 
-    const message =
-      await editMessage(
-        currentUserId,
-        messageId,
-        text,
-      );
+    const message = await editMessage(currentUserId, messageId, text);
 
     return res.status(200).json({
       success: true,
-      message:
-        "Message updated successfully",
+      message: "Message updated successfully",
       data: message,
     });
   } catch (error) {
-    console.error(
-      "Update message error:",
-      error,
-    );
+    console.error("Update message error:", error);
 
     return res.status(400).json({
       success: false,
       message:
-        error instanceof Error
-          ? error.message
-          : "Failed to update message",
+        error instanceof Error ? error.message : "Failed to update message",
     });
   }
 };
 
-export const deleteMessageController = async (
-  req: Request,
-  res: Response,
-) => {
+export const deleteMessageController = async (req: Request, res: Response) => {
   try {
-    const currentUserId =
-      req.user?.userId;
+    const currentUserId = req.user?.userId;
 
     if (!currentUserId) {
       return res.status(401).json({
@@ -226,8 +171,7 @@ export const deleteMessageController = async (
       });
     }
 
-    const { id: messageId } =
-      req.params;
+    const { id: messageId } = req.params;
 
     if (!messageId) {
       return res.status(400).json({
@@ -236,28 +180,18 @@ export const deleteMessageController = async (
       });
     }
 
-    const data =
-      await deleteMessage(
-        currentUserId,
-        messageId as string,
-      );
+    const data = await deleteMessage(currentUserId, messageId as string);
 
     return res.status(200).json({
       success: true,
-      message:
-        "Message deleted successfully",
+      message: "Message deleted successfully",
       data,
     });
   } catch (error) {
-    console.error(
-      "Delete message error:",
-      error,
-    );
+    console.error("Delete message error:", error);
 
     const message =
-      error instanceof Error
-        ? error.message
-        : "Failed to delete message";
+      error instanceof Error ? error.message : "Failed to delete message";
 
     return res.status(400).json({
       success: false,
@@ -266,10 +200,7 @@ export const deleteMessageController = async (
   }
 };
 
-export const addReactionController = async (
-  req: Request,
-  res: Response,
-) => {
+export const addReactionController = async (req: Request, res: Response) => {
   try {
     const { messageId } = req.params;
     const { emoji } = req.body;
@@ -288,7 +219,11 @@ export const addReactionController = async (
         result.action === "added"
           ? "Reaction added successfully"
           : "Reaction removed successfully",
-      data: result.message,
+
+      data: {
+        message: result.message,
+        reactionSummary: result.reactionSummary,
+      },
     });
   } catch (error) {
     console.error("Add reaction error:", error);
@@ -296,12 +231,7 @@ export const addReactionController = async (
     return res.status(400).json({
       success: false,
       message:
-        error instanceof Error
-          ? error.message
-          : "Failed to add reaction",
+        error instanceof Error ? error.message : "Failed to add reaction",
     });
   }
 };
-
-
- 
