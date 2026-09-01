@@ -1,24 +1,38 @@
 import { Schema, model } from "mongoose";
 
-import { IMessage } from "./message.interface";
+import { IAttachment, IMessage } from "./message.interface";
 
-const reactionSchema = new Schema(
+const attachmentSchema = new Schema<IAttachment>(
   {
-    userId: {
-      type: Schema.Types.ObjectId,
-      ref: "User",
+    type: {
+      type: String,
+      enum: ["image", "video", "file", "audio"],
       required: true,
     },
 
-    emoji: {
+    url: {
       type: String,
       required: true,
-      trim: true,
     },
 
-    createdAt: {
-      type: Date,
-      default: Date.now,
+    publicId: {
+      type: String,
+      required: true,
+    },
+
+    fileName: {
+      type: String,
+      required: true,
+    },
+
+    mimeType: {
+      type: String,
+      required: true,
+    },
+
+    size: {
+      type: Number,
+      required: true,
     },
   },
   {
@@ -32,21 +46,23 @@ const messageSchema = new Schema<IMessage>(
       type: Schema.Types.ObjectId,
       ref: "Conversation",
       required: true,
-      index: true,
     },
 
     senderId: {
       type: Schema.Types.ObjectId,
       ref: "User",
       required: true,
-      index: true,
     },
 
     text: {
       type: String,
-      required: true,
+      default: "",
       trim: true,
-      maxlength: 5000,
+    },
+
+    attachments: {
+      type: [attachmentSchema],
+      default: [],
     },
 
     isEdited: {
@@ -64,11 +80,6 @@ const messageSchema = new Schema<IMessage>(
       default: null,
     },
 
-    reactions: {
-      type: [reactionSchema],
-      default: [],
-    },
-
     deliveredTo: [
       {
         type: Schema.Types.ObjectId,
@@ -83,6 +94,26 @@ const messageSchema = new Schema<IMessage>(
       },
     ],
 
+    reactions: [
+      {
+        userId: {
+          type: Schema.Types.ObjectId,
+          ref: "User",
+          required: true,
+        },
+
+        emoji: {
+          type: String,
+          required: true,
+        },
+
+        createdAt: {
+          type: Date,
+          default: Date.now,
+        },
+      },
+    ],
+
     replyTo: {
       type: Schema.Types.ObjectId,
       ref: "Message",
@@ -91,13 +122,26 @@ const messageSchema = new Schema<IMessage>(
   },
   {
     timestamps: true,
-    versionKey: false,
   },
 );
 
-messageSchema.index({
-  conversationId: 1,
-  createdAt: 1,
+/*
+  Important validation:
+  Message must contain either:
+  - text
+  OR
+  - attachment
+*/
+messageSchema.pre("validate", function (next) {
+  const hasText = Boolean(this.text?.trim());
+
+  const hasAttachment = this.attachments.length > 0;
+
+  if (!hasText && !hasAttachment) {
+    return next(new Error("Message must contain text or attachment"));
+  }
+
+  next();
 });
 
 export const MessageModel = model<IMessage>("Message", messageSchema);
