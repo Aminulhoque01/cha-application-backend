@@ -3,30 +3,63 @@ import mongoose, { Types } from "mongoose";
 import { MessageModel } from "./message.model";
 import { ConversationModel } from "../conversation/conversation.model";
 import { isConversationMember } from "../conversation/conversation.service";
-import { IMessageReaction } from "./message.interface";
+import { IAttachment, IMessageReaction } from "./message.interface";
 
 export const createMessage = async (
   currentUserId: string,
   conversationId: string,
-  text: string,
+  text = "",
   replyTo?: string,
+  attachments: IAttachment[] = []
 ) => {
   // 1. Validate current user ID
-  if (!mongoose.Types.ObjectId.isValid(currentUserId)) {
-    throw new Error("Invalid current user ID");
+  if (
+    !mongoose.Types.ObjectId.isValid(
+      currentUserId,
+    )
+  ) {
+    throw new Error(
+      "Invalid current user ID",
+    );
   }
 
   // 2. Validate conversation ID
-  if (!mongoose.Types.ObjectId.isValid(conversationId)) {
-    throw new Error("Invalid conversation ID");
+  if (
+    !mongoose.Types.ObjectId.isValid(
+      conversationId,
+    )
+  ) {
+    throw new Error(
+      "Invalid conversation ID",
+    );
   }
 
-  // 3. Find conversation and make sure
+  // 3. Validate message content
+  const trimmedText = text.trim();
+
+  if (
+    !trimmedText &&
+    attachments.length === 0
+  ) {
+    throw new Error(
+      "Message must contain text or attachment",
+    );
+  }
+
+  // 4. Find conversation and make sure
   // current user is a participant
-  const conversation = await ConversationModel.findOne({
-    _id: new mongoose.Types.ObjectId(conversationId),
-    participants: new mongoose.Types.ObjectId(currentUserId),
-  });
+  const conversation =
+    await ConversationModel.findOne({
+      _id:
+        new mongoose.Types.ObjectId(
+          conversationId,
+        ),
+
+      participants:
+        new mongoose.Types.ObjectId(
+          currentUserId,
+        ),
+    });
 
   if (!conversation) {
     throw new Error(
@@ -34,18 +67,27 @@ export const createMessage = async (
     );
   }
 
-  // 4. Validate reply message
+  // 5. Validate reply message
   if (replyTo) {
-    if (!mongoose.Types.ObjectId.isValid(replyTo)) {
-      throw new Error("Invalid reply message ID");
+    if (
+      !mongoose.Types.ObjectId.isValid(
+        replyTo,
+      )
+    ) {
+      throw new Error(
+        "Invalid reply message ID",
+      );
     }
 
-    const replyMessage = await MessageModel.findById(
-      replyTo,
-    );
+    const replyMessage =
+      await MessageModel.findById(
+        replyTo,
+      );
 
     if (!replyMessage) {
-      throw new Error("Reply message not found");
+      throw new Error(
+        "Reply message not found",
+      );
     }
 
     if (
@@ -58,38 +100,51 @@ export const createMessage = async (
     }
   }
 
-  // 5. Create message
-  const message = await MessageModel.create({
-    conversationId:
-      new mongoose.Types.ObjectId(conversationId),
+  // 6. Create message
+  const message =
+    await MessageModel.create({
+      conversationId:
+        new mongoose.Types.ObjectId(
+          conversationId,
+        ),
 
-    senderId:
-      new mongoose.Types.ObjectId(currentUserId),
+      senderId:
+        new mongoose.Types.ObjectId(
+          currentUserId,
+        ),
 
-    text: text.trim(),
+      // Can be empty for file/media-only messages
+      text: trimmedText,
 
-    replyTo: replyTo
-      ? new mongoose.Types.ObjectId(replyTo)
-      : null,
-  });
+      // New attachment support
+      attachments,
 
-  // 6. Update conversation lastMessage
-  conversation.lastMessage = message._id;
+      // Existing reply support
+      replyTo: replyTo
+        ? new mongoose.Types.ObjectId(
+            replyTo,
+          )
+        : null,
+    });
+
+  // 7. Update conversation lastMessage
+  conversation.lastMessage =
+    message._id;
 
   await conversation.save();
 
-  // 7. Populate sender
+  // 8. Populate sender
   await message.populate(
     "senderId",
     "phone name avatar bio isOnline lastSeen",
   );
 
-  // 8. Populate reply message
+  // 9. Populate reply message
   await message.populate({
     path: "replyTo",
 
     select:
-      "text senderId isDeleted createdAt",
+      "text senderId isDeleted createdAt attachments",
 
     populate: {
       path: "senderId",

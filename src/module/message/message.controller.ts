@@ -14,10 +14,16 @@ import {
   sendMessageSchema,
 } from "./message.validation";
 
-export const sendMessage = async (req: Request, res: Response) => {
+ 
+import { uploadMultipleMessageFiles } from "./messageUpload.service";
+
+export const sendMessage = async (
+  req: Request,
+  res: Response,
+) => {
   try {
-    // Current logged-in user
-    const currentUserId = req.user?.userId;
+    const currentUserId =
+      req.user?.userId;
 
     if (!currentUserId) {
       return res.status(401).json({
@@ -26,37 +32,72 @@ export const sendMessage = async (req: Request, res: Response) => {
       });
     }
 
-    // Validate request body
-    const result = sendMessageSchema.safeParse(req.body);
+    console.log("BODY:", req.body);
+    console.log("FILES:", req.files);
+
+    // Validate text fields
+    const result =
+      sendMessageSchema.safeParse(
+        req.body ?? {},
+      );
 
     if (!result.success) {
       return res.status(400).json({
         success: false,
-        message: "Invalid message data",
-        errors: result.error.flatten(),
+        message:
+          "Invalid message data",
+
+        errors:
+          result.error.flatten(),
       });
     }
 
-    const { conversationId, text, replyTo } = result.data;
-
-    // Create normal or reply message
-    const message = await createMessage(
-      currentUserId,
+    const {
       conversationId,
       text,
       replyTo,
-    );
+    } = result.data;
+
+    // Convert req.files safely
+    const files =
+      Array.isArray(req.files)
+        ? req.files
+        : [];
+
+    // Upload files to Cloudinary
+    const attachments =
+      files.length > 0
+        ? await uploadMultipleMessageFiles(
+            files,
+          )
+        : [];
+
+    // Create message
+    const message =
+      await createMessage(
+        currentUserId,
+        conversationId,
+        text,
+        replyTo,
+        attachments,
+      );
 
     return res.status(201).json({
       success: true,
-      message: "Message sent successfully",
+      message:
+        "Message sent successfully",
       data: message,
     });
   } catch (error) {
-    console.error("Send message error:", error);
+    console.error(
+      "Send message error:",
+      error,
+    );
 
     const message =
-      error instanceof Error ? error.message : "Failed to send message";
+      error instanceof Error
+        ? error.message
+        : "Failed to send message";
 
     return res.status(400).json({
       success: false,

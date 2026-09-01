@@ -10,15 +10,20 @@ import {
   sendMessage,
   updateMessage,
 } from "./message.controller";
+import { uploadMessageFiles } from "../../middleware/messageUpload.middleware";
+ 
 
 const messageRouter = Router();
 
 messageRouter.post(
   "/",
   authMiddleware,
+  uploadMessageFiles.array(
+    "attachments",
+    10,
+  ),
   sendMessage,
 );
-
 messageRouter.get(
   "/:id/messages",
   authMiddleware,
@@ -45,6 +50,6 @@ messageRouter.post(
   addReactionController,
 );
 
- 
+
 
 export default messageRouter;

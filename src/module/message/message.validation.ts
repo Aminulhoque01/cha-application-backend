@@ -1,17 +1,9 @@
 import { z } from "zod";
 
 export const sendMessageSchema = z.object({
-  conversationId: z
-    .string()
-    .min(1, "Conversation ID is required"),
-
-  text: z
-    .string()
-    .min(1, "Message text is required"),
-
-  replyTo: z
-    .string()
-    .optional(),
+  conversationId: z.string().min(1),
+  text: z.string().optional().default(""),
+  replyTo: z.string().optional(),
 });
 
 export const getMessagesSchema = z.object({
