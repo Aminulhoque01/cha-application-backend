@@ -168,3 +168,34 @@ export const deleteMessageAttachmentFromCloudinary =
       throw error;
     }
   };
+
+
+  export const deleteMultipleMessageAttachments =
+  async (
+    attachments: IAttachment[],
+  ) => {
+    if (!attachments.length) {
+      return;
+    }
+
+    const results =
+      await Promise.allSettled(
+        attachments.map(
+          deleteMessageAttachmentFromCloudinary,
+        ),
+      );
+
+    const failed =
+      results.filter(
+        (result) =>
+          result.status === "rejected",
+      );
+
+    if (failed.length > 0) {
+      console.error(
+        `${failed.length} attachment(s) could not be deleted from Cloudinary`,
+      );
+    }
+
+    return results;
+  };
