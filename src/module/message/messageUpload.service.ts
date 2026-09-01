@@ -120,3 +120,51 @@ export const uploadMultipleMessageFiles =
       ),
     );
   };
+
+
+ 
+
+export const deleteMessageAttachmentFromCloudinary =
+  async (
+    attachment: IAttachment,
+  ) => {
+    let resourceType:
+      | "image"
+      | "video"
+      | "raw";
+
+    if (attachment.type === "image") {
+      resourceType = "image";
+    } else if (
+      attachment.type === "video" ||
+      attachment.type === "audio"
+    ) {
+      resourceType = "video";
+    } else {
+      resourceType = "raw";
+    }
+
+    try {
+      const result =
+        await cloudinary.uploader.destroy(
+          attachment.publicId,
+          {
+            resource_type: resourceType,
+          },
+        );
+
+      console.log(
+        "Cloudinary delete result:",
+        result,
+      );
+
+      return result;
+    } catch (error) {
+      console.error(
+        `Failed to delete Cloudinary file: ${attachment.publicId}`,
+        error,
+      );
+
+      throw error;
+    }
+  };
