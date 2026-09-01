@@ -5,6 +5,7 @@ import { env } from "../config/env";
 
 import { socketAuth } from "./socket.auth";
 import { registerSocketHandlers } from "./socket.handlers";
+
 import {
   isConversationMember,
 } from "../module/conversation/conversation.service";
@@ -15,6 +16,10 @@ import {
   InterServerEvents,
   SocketData,
 } from "./socket.types";
+
+import {
+  setSocketIO,
+} from "./socket.instance";
 
 export const createSocketServer = (
   httpServer: HttpServer,
@@ -30,6 +35,13 @@ export const createSocketServer = (
       credentials: true,
     },
   });
+
+  // Store Socket.IO instance
+  setSocketIO(io);
+
+  console.log(
+    "Socket.IO initialized successfully",
+  );
 
   // JWT authentication
   io.use(socketAuth);

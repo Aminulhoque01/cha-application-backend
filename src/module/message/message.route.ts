@@ -24,6 +24,8 @@ messageRouter.post(
   ),
   sendMessage,
 );
+
+
 messageRouter.get(
   "/:id/messages",
   authMiddleware,

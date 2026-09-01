@@ -14,8 +14,8 @@ import {
   sendMessageSchema,
 } from "./message.validation";
 
- 
 import { uploadMultipleMessageFiles } from "./messageUpload.service";
+import { getSocketIO } from "../../socket/socket.instance";
 
 export const sendMessage = async (
   req: Request,
@@ -32,47 +32,32 @@ export const sendMessage = async (
       });
     }
 
-    console.log("BODY:", req.body);
-    console.log("FILES:", req.files);
+    const conversationId =
+      req.body?.conversationId;
 
-    // Validate text fields
-    const result =
-      sendMessageSchema.safeParse(
-        req.body ?? {},
-      );
+    const text =
+      req.body?.text ?? "";
 
-    if (!result.success) {
+    const replyTo =
+      req.body?.replyTo;
+
+    if (!conversationId) {
       return res.status(400).json({
         success: false,
         message:
-          "Invalid message data",
-
-        errors:
-          result.error.flatten(),
+          "Conversation ID is required",
       });
     }
 
-    const {
-      conversationId,
-      text,
-      replyTo,
-    } = result.data;
-
-    // Convert req.files safely
     const files =
-      Array.isArray(req.files)
-        ? req.files
-        : [];
+      (req.files as Express.Multer.File[]) ??
+      [];
 
-    // Upload files to Cloudinary
     const attachments =
-      files.length > 0
-        ? await uploadMultipleMessageFiles(
-            files,
-          )
-        : [];
+      await uploadMultipleMessageFiles(
+        files,
+      );
 
-    // Create message
     const message =
       await createMessage(
         currentUserId,
@@ -81,6 +66,19 @@ export const sendMessage = async (
         replyTo,
         attachments,
       );
+
+    // Realtime event
+    const io =
+      getSocketIO();
+
+    io.to(conversationId).emit(
+      "message:new",
+      message,
+    );
+
+    console.log(
+      `REST message ${message._id} sent to room ${conversationId}`,
+    );
 
     return res.status(201).json({
       success: true,
@@ -94,14 +92,15 @@ export const sendMessage = async (
       error,
     );
 
-    const message =
+    const errorMessage =
       error instanceof Error
         ? error.message
         : "Failed to send message";
 
     return res.status(400).json({
       success: false,
-      message,
+      message:
+        errorMessage,
     });
   }
 };
