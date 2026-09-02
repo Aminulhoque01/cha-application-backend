@@ -17,13 +17,9 @@ import {
 import { uploadMultipleMessageFiles } from "./messageUpload.service";
 import { getSocketIO } from "../../socket/socket.instance";
 
-export const sendMessage = async (
-  req: Request,
-  res: Response,
-) => {
+export const sendMessage = async (req: Request, res: Response) => {
   try {
-    const currentUserId =
-      req.user?.userId;
+    const currentUserId = req.user?.userId;
 
     if (!currentUserId) {
       return res.status(401).json({
@@ -32,75 +28,61 @@ export const sendMessage = async (
       });
     }
 
-    const conversationId =
-      req.body?.conversationId;
+    // Validate text fields
+    const result = sendMessageSchema.safeParse(req.body ?? {});
 
-    const text =
-      req.body?.text ?? "";
-
-    const replyTo =
-      req.body?.replyTo;
-
-    if (!conversationId) {
+    if (!result.success) {
       return res.status(400).json({
         success: false,
-        message:
-          "Conversation ID is required",
+        message: "Invalid message data",
+
+        errors: result.error.flatten(),
       });
     }
 
-    const files =
-      (req.files as Express.Multer.File[]) ??
-      [];
+    const { conversationId, text, replyTo } = result.data;
 
+    // Convert req.files safely
+    const files = Array.isArray(req.files) ? req.files : [];
+
+    // Upload files to Cloudinary
     const attachments =
-      await uploadMultipleMessageFiles(
-        files,
-      );
+      files.length > 0 ? await uploadMultipleMessageFiles(files) : [];
 
-    const message =
-      await createMessage(
-        currentUserId,
-        conversationId,
-        text,
-        replyTo,
-        attachments,
-      );
-
-    // Realtime event
-    const io =
-      getSocketIO();
-
-    io.to(conversationId).emit(
-      "message:new",
-      message,
+   
+    // Create message
+    const message = await createMessage(
+      currentUserId,
+      conversationId,
+      text,
+      replyTo,
+      attachments,
     );
 
-    console.log(
+
+     const io = getSocketIO();
+
+    io.to(conversationId).emit("message:new", message);
+
+     console.log(
       `REST message ${message._id} sent to room ${conversationId}`,
     );
 
+
     return res.status(201).json({
       success: true,
-      message:
-        "Message sent successfully",
+      message: "Message sent successfully",
       data: message,
     });
   } catch (error) {
-    console.error(
-      "Send message error:",
-      error,
-    );
+    console.error("Send message error:", error);
 
-    const errorMessage =
-      error instanceof Error
-        ? error.message
-        : "Failed to send message";
+    const message =
+      error instanceof Error ? error.message : "Failed to send message";
 
     return res.status(400).json({
       success: false,
-      message:
-        errorMessage,
+      message,
     });
   }
 };

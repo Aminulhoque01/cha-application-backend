@@ -2,10 +2,7 @@ import { Server } from "socket.io";
 
 import { AuthenticatedSocket } from "./socket.types";
 
-import {
-  setUserOffline,
-  setUserOnline,
-} from "../module/user/user.service";
+import { setUserOffline, setUserOnline } from "../module/user/user.service";
 
 import {
   addReaction,
@@ -16,9 +13,7 @@ import {
   markMessageAsRead,
 } from "../module/message/message.service";
 
-import {
-  isConversationMember,
-} from "../module/conversation/conversation.service";
+import { isConversationMember } from "../module/conversation/conversation.service";
 
 export const registerSocketHandlers = (
   io: Server,
@@ -32,15 +27,10 @@ export const registerSocketHandlers = (
 
   setUserOnline(userId)
     .then(() => {
-      console.log(
-        `User ${userId} is online`,
-      );
+      console.log(`User ${userId} is online`);
     })
     .catch((error) => {
-      console.error(
-        "Failed to set user online:",
-        error,
-      );
+      console.error("Failed to set user online:", error);
     });
 
   // ==========================================
@@ -49,57 +39,40 @@ export const registerSocketHandlers = (
 
   socket.on(
     "message:send",
-    async (
-      payload: {
-        conversationId: string;
-        text?: string;
-        replyTo?: string;
-      },
-    ) => {
+    async (payload: {
+      conversationId: string;
+      text?: string;
+      replyTo?: string;
+    }) => {
       try {
-        const {
-          conversationId,
-          text = "",
-          replyTo,
-        } = payload;
+        const { conversationId, text = "", replyTo } = payload;
 
         if (!conversationId) {
           socket.emit("message:error", {
-            message:
-              "Conversation ID is required",
+            message: "Conversation ID is required",
           });
 
           return;
         }
 
-        const message =
-          await createMessage(
-            socket.data.userId,
-            conversationId,
-            text,
-            [], // attachments empty for socket
-            replyTo,
-          );
+        const message = await createMessage(
+          socket.data.userId,
+          conversationId,
+          text,
 
-        io.to(conversationId).emit(
-          "message:new",
-          message,
+          replyTo,
+          [], // attachments empty for socket
         );
 
-        console.log(
-          `Message ${message._id} sent to room ${conversationId}`,
-        );
+        io.to(conversationId).emit("message:new", message);
+
+        console.log(`Message ${message._id} sent to room ${conversationId}`);
       } catch (error) {
-        console.error(
-          "message:send error:",
-          error,
-        );
+        console.error("message:send error:", error);
 
         socket.emit("message:error", {
           message:
-            error instanceof Error
-              ? error.message
-              : "Failed to send message",
+            error instanceof Error ? error.message : "Failed to send message",
         });
       }
     },
@@ -109,451 +82,263 @@ export const registerSocketHandlers = (
   // Message Reaction
   // ==========================================
 
-  socket.on(
-    "message:reaction",
-    async (payload) => {
-      try {
-        const {
-          messageId,
-          emoji,
-        } = payload;
+  socket.on("message:reaction", async (payload) => {
+    try {
+      const { messageId, emoji } = payload;
 
-        const result =
-          await addReaction(
-            userId,
-            messageId,
-            emoji,
-          );
+      const result = await addReaction(userId, messageId, emoji);
 
-        const conversationId =
-          result.message.conversationId.toString();
+      const conversationId = result.message.conversationId.toString();
 
-        io.to(conversationId).emit(
-          "message:reaction:update",
-          {
-            messageId:
-              result.message._id.toString(),
+      io.to(conversationId).emit("message:reaction:update", {
+        messageId: result.message._id.toString(),
 
-            conversationId,
+        conversationId,
 
-            action: result.action,
+        action: result.action,
 
-            reactionSummary:
-              result.reactionSummary,
-          },
-        );
+        reactionSummary: result.reactionSummary,
+      });
 
-        console.log(
-          `Reaction ${result.action}:`,
-          emoji,
-          `on message ${messageId}`,
-        );
-      } catch (error) {
-        console.error(
-          "message:reaction error:",
-          error,
-        );
+      console.log(
+        `Reaction ${result.action}:`,
+        emoji,
+        `on message ${messageId}`,
+      );
+    } catch (error) {
+      console.error("message:reaction error:", error);
 
-        socket.emit("message:error", {
-          message:
-            error instanceof Error
-              ? error.message
-              : "Failed to update reaction",
-        });
-      }
-    },
-  );
+      socket.emit("message:error", {
+        message:
+          error instanceof Error ? error.message : "Failed to update reaction",
+      });
+    }
+  });
 
   // ==========================================
   // Message Delete
   // ==========================================
 
-  socket.on(
-    "message:delete",
-    async (payload) => {
-      try {
-        const { messageId } = payload;
+  socket.on("message:delete", async (payload) => {
+    try {
+      const { messageId } = payload;
 
-        if (!messageId) {
-          socket.emit(
-            "message:error",
-            {
-              message:
-                "Message ID is required",
-            },
-          );
-
-          return;
-        }
-
-        const deletedMessage =
-          await deleteMessage(
-            userId,
-            messageId,
-          );
-
-        io.to(
-          deletedMessage.conversationId,
-        ).emit(
-          "message:deleted",
-          deletedMessage,
-        );
-
-        console.log(
-          `Message ${messageId} deleted`,
-        );
-      } catch (error) {
-        console.error(
-          "message:delete error:",
-          error,
-        );
-
+      if (!messageId) {
         socket.emit("message:error", {
-          message:
-            error instanceof Error
-              ? error.message
-              : "Failed to delete message",
+          message: "Message ID is required",
         });
+
+        return;
       }
-    },
-  );
+
+      const deletedMessage = await deleteMessage(userId, messageId);
+
+      io.to(deletedMessage.conversationId).emit(
+        "message:deleted",
+        deletedMessage,
+      );
+
+      console.log(`Message ${messageId} deleted`);
+    } catch (error) {
+      console.error("message:delete error:", error);
+
+      socket.emit("message:error", {
+        message:
+          error instanceof Error ? error.message : "Failed to delete message",
+      });
+    }
+  });
 
   // ==========================================
   // Message Edit
   // ==========================================
 
-  socket.on(
-    "message:edit",
-    async (payload) => {
-      try {
-        const {
-          messageId,
-          text,
-        } = payload;
+  socket.on("message:edit", async (payload) => {
+    try {
+      const { messageId, text } = payload;
 
-        if (!messageId) {
-          socket.emit(
-            "message:error",
-            {
-              message:
-                "Message ID is required",
-            },
-          );
-
-          return;
-        }
-
-        if (
-          !text ||
-          !text.trim()
-        ) {
-          socket.emit(
-            "message:error",
-            {
-              message:
-                "Message text is required",
-            },
-          );
-
-          return;
-        }
-
-        const message =
-          await editMessage(
-            userId,
-            messageId,
-            text,
-          );
-
-        io.to(
-          message.conversationId.toString(),
-        ).emit(
-          "message:updated",
-          message,
-        );
-
-        console.log(
-          `Message ${message._id} edited`,
-        );
-      } catch (error) {
-        console.error(
-          "message:edit error:",
-          error,
-        );
-
+      if (!messageId) {
         socket.emit("message:error", {
-          message:
-            error instanceof Error
-              ? error.message
-              : "Failed to edit message",
+          message: "Message ID is required",
         });
+
+        return;
       }
-    },
-  );
+
+      if (!text || !text.trim()) {
+        socket.emit("message:error", {
+          message: "Message text is required",
+        });
+
+        return;
+      }
+
+      const message = await editMessage(userId, messageId, text);
+
+      io.to(message.conversationId.toString()).emit("message:updated", message);
+
+      console.log(`Message ${message._id} edited`);
+    } catch (error) {
+      console.error("message:edit error:", error);
+
+      socket.emit("message:error", {
+        message:
+          error instanceof Error ? error.message : "Failed to edit message",
+      });
+    }
+  });
 
   // ==========================================
   // Message Delivered
   // ==========================================
 
-  socket.on(
-    "message:delivered",
-    async ({ messageId }) => {
-      try {
-        const result =
-          await markMessageAsDelivered(
-            userId,
-            messageId,
-          );
+  socket.on("message:delivered", async ({ messageId }) => {
+    try {
+      const result = await markMessageAsDelivered(userId, messageId);
 
-        io.to(
-          result.conversationId,
-        ).emit(
-          "message:delivery:update",
-          {
-            messageId:
-              result.messageId,
+      io.to(result.conversationId).emit("message:delivery:update", {
+        messageId: result.messageId,
 
-            userId:
-              result.userId,
-          },
-        );
+        userId: result.userId,
+      });
 
-        console.log(
-          `Message ${result.messageId} delivered to user ${result.userId}`,
-        );
-      } catch (error) {
-        console.error(
-          "message:delivered error:",
-          error,
-        );
+      console.log(
+        `Message ${result.messageId} delivered to user ${result.userId}`,
+      );
+    } catch (error) {
+      console.error("message:delivered error:", error);
 
-        socket.emit(
-          "message:error",
-          {
-            message:
-              error instanceof Error
-                ? error.message
-                : "Failed to mark message as delivered",
-          },
-        );
-      }
-    },
-  );
+      socket.emit("message:error", {
+        message:
+          error instanceof Error
+            ? error.message
+            : "Failed to mark message as delivered",
+      });
+    }
+  });
 
   // ==========================================
   // Message Read
   // ==========================================
 
-  socket.on(
-    "message:read",
-    async (
-      payload: {
-        messageId: string;
-      },
-    ) => {
-      try {
-        const { messageId } =
-          payload;
+  socket.on("message:read", async (payload: { messageId: string }) => {
+    try {
+      const { messageId } = payload;
 
-        if (!messageId) {
-          socket.emit(
-            "message:error",
-            {
-              message:
-                "Message ID is required",
-            },
-          );
+      if (!messageId) {
+        socket.emit("message:error", {
+          message: "Message ID is required",
+        });
 
-          return;
-        }
-
-        const message =
-          await markMessageAsRead(
-            userId,
-            messageId,
-          );
-
-        io.to(
-          message.conversationId.toString(),
-        ).emit(
-          "message:read:update",
-          {
-            messageId:
-              message._id.toString(),
-
-            conversationId:
-              message.conversationId.toString(),
-
-            userId,
-          },
-        );
-
-        console.log(
-          `User ${userId} read message ${messageId}`,
-        );
-      } catch (error) {
-        console.error(
-          "message:read error:",
-          error,
-        );
-
-        socket.emit(
-          "message:error",
-          {
-            message:
-              error instanceof Error
-                ? error.message
-                : "Failed to mark message as read",
-          },
-        );
+        return;
       }
-    },
-  );
+
+      const message = await markMessageAsRead(userId, messageId);
+
+      io.to(message.conversationId.toString()).emit("message:read:update", {
+        messageId: message._id.toString(),
+
+        conversationId: message.conversationId.toString(),
+
+        userId,
+      });
+
+      console.log(`User ${userId} read message ${messageId}`);
+    } catch (error) {
+      console.error("message:read error:", error);
+
+      socket.emit("message:error", {
+        message:
+          error instanceof Error
+            ? error.message
+            : "Failed to mark message as read",
+      });
+    }
+  });
 
   // ==========================================
   // Typing Start
   // ==========================================
 
-  socket.on(
-    "typing:start",
-    async ({ conversationId }) => {
-      try {
-        if (!conversationId) {
-          socket.emit(
-            "message:error",
-            {
-              message:
-                "Conversation ID is required",
-            },
-          );
+  socket.on("typing:start", async ({ conversationId }) => {
+    try {
+      if (!conversationId) {
+        socket.emit("message:error", {
+          message: "Conversation ID is required",
+        });
 
-          return;
-        }
-
-        const isMember =
-          await isConversationMember(
-            conversationId,
-            userId,
-          );
-
-        if (!isMember) {
-          socket.emit(
-            "message:error",
-            {
-              message:
-                "You are not a member of this conversation",
-            },
-          );
-
-          return;
-        }
-
-        socket
-          .to(conversationId)
-          .emit(
-            "typing:start",
-            {
-              conversationId,
-              userId,
-            },
-          );
-
-        console.log(
-          `User ${userId} started typing in ${conversationId}`,
-        );
-      } catch (error) {
-        console.error(
-          "typing:start error:",
-          error,
-        );
+        return;
       }
-    },
-  );
+
+      const isMember = await isConversationMember(conversationId, userId);
+
+      if (!isMember) {
+        socket.emit("message:error", {
+          message: "You are not a member of this conversation",
+        });
+
+        return;
+      }
+
+      socket.to(conversationId).emit("typing:start", {
+        conversationId,
+        userId,
+      });
+
+      console.log(`User ${userId} started typing in ${conversationId}`);
+    } catch (error) {
+      console.error("typing:start error:", error);
+    }
+  });
 
   // ==========================================
   // Typing Stop
   // ==========================================
 
-  socket.on(
-    "typing:stop",
-    async ({ conversationId }) => {
-      try {
-        if (!conversationId) {
-          socket.emit(
-            "message:error",
-            {
-              message:
-                "Conversation ID is required",
-            },
-          );
+  socket.on("typing:stop", async ({ conversationId }) => {
+    try {
+      if (!conversationId) {
+        socket.emit("message:error", {
+          message: "Conversation ID is required",
+        });
 
-          return;
-        }
-
-        const isMember =
-          await isConversationMember(
-            conversationId,
-            userId,
-          );
-
-        if (!isMember) {
-          socket.emit(
-            "message:error",
-            {
-              message:
-                "You are not a member of this conversation",
-            },
-          );
-
-          return;
-        }
-
-        socket
-          .to(conversationId)
-          .emit(
-            "typing:stop",
-            {
-              conversationId,
-              userId,
-            },
-          );
-
-        console.log(
-          `User ${userId} stopped typing in ${conversationId}`,
-        );
-      } catch (error) {
-        console.error(
-          "typing:stop error:",
-          error,
-        );
+        return;
       }
-    },
-  );
+
+      const isMember = await isConversationMember(conversationId, userId);
+
+      if (!isMember) {
+        socket.emit("message:error", {
+          message: "You are not a member of this conversation",
+        });
+
+        return;
+      }
+
+      socket.to(conversationId).emit("typing:stop", {
+        conversationId,
+        userId,
+      });
+
+      console.log(`User ${userId} stopped typing in ${conversationId}`);
+    } catch (error) {
+      console.error("typing:stop error:", error);
+    }
+  });
 
   // ==========================================
   // Disconnect
   // ==========================================
 
-  socket.on(
-    "disconnect",
-    (reason) => {
-      console.log(
-        `Socket disconnected: ${socket.id}`,
-        `reason: ${reason}`,
-      );
+  socket.on("disconnect", (reason) => {
+    console.log(`Socket disconnected: ${socket.id}`, `reason: ${reason}`);
 
-      setUserOffline(userId)
-        .then(() => {
-          console.log(
-            `User ${userId} is offline`,
-          );
-        })
-        .catch((error) => {
-          console.error(
-            "Failed to set user offline:",
-            error,
-          );
-        });
-    },
-  );
+    setUserOffline(userId)
+      .then(() => {
+        console.log(`User ${userId} is offline`);
+      })
+      .catch((error) => {
+        console.error("Failed to set user offline:", error);
+      });
+  });
 };

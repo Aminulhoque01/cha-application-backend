@@ -4,6 +4,7 @@ import { MessageModel } from "./message.model";
 import { ConversationModel } from "../conversation/conversation.model";
 import { isConversationMember } from "../conversation/conversation.service";
 import { IAttachment, IMessageReaction } from "./message.interface";
+import { deleteMultipleMessageAttachments } from "./messageUpload.service";
 
 export const createMessage = async (
   currentUserId: string,
@@ -388,58 +389,104 @@ export const editMessage = async (
   return message;
 };
 
+ 
+
 export const deleteMessage = async (
   currentUserId: string,
   messageId: string,
 ) => {
   // Validate current user ID
-  if (!mongoose.Types.ObjectId.isValid(currentUserId)) {
-    throw new Error("Invalid current user ID");
+  if (
+    !mongoose.Types.ObjectId.isValid(
+      currentUserId,
+    )
+  ) {
+    throw new Error(
+      "Invalid current user ID",
+    );
   }
 
   // Validate message ID
-  if (!mongoose.Types.ObjectId.isValid(messageId)) {
-    throw new Error("Invalid message ID");
+  if (
+    !mongoose.Types.ObjectId.isValid(
+      messageId,
+    )
+  ) {
+    throw new Error(
+      "Invalid message ID",
+    );
   }
 
   // Find message
-  const message = await MessageModel.findById(messageId);
+  const message =
+    await MessageModel.findById(
+      messageId,
+    );
 
   if (!message) {
-    throw new Error("Message not found");
+    throw new Error(
+      "Message not found",
+    );
   }
 
   // Check ownership
-  if (message.senderId.toString() !== currentUserId) {
-    throw new Error("You can only delete your own messages");
+  if (
+    message.senderId.toString() !==
+    currentUserId
+  ) {
+    throw new Error(
+      "You can only delete your own messages",
+    );
   }
 
   // Prevent duplicate deletion
   if (message.isDeleted) {
-    throw new Error("Message is already deleted");
+    throw new Error(
+      "Message is already deleted",
+    );
   }
 
-  // Soft delete
+  // =====================================
+  // Delete attachments from Cloudinary
+  // =====================================
+  if (
+    message.attachments &&
+    message.attachments.length > 0
+  ) {
+    await deleteMultipleMessageAttachments(
+      message.attachments,
+    );
+  }
+
+  // =====================================
+  // Soft delete message
+  // =====================================
   message.isDeleted = true;
-  message.deletedAt = new Date();
 
-  // // Hide original text
-  // message.text = "";
+  message.deletedAt =
+    new Date();
 
-  // Save
+  // Hide original text
+  message.text = "";
+
+  // Remove attachments from MongoDB
+  message.attachments = [];
+
   await message.save();
 
   return {
-    messageId: message._id.toString(),
+    messageId:
+      message._id.toString(),
 
-    conversationId: message.conversationId.toString(),
+    conversationId:
+      message.conversationId.toString(),
 
     isDeleted: true,
 
-    deletedAt: message.deletedAt,
+    deletedAt:
+      message.deletedAt,
   };
 };
-
 
 const getReactionSummary = (reactions: IMessageReaction[]) => {
   const reactionMap = new Map<
@@ -538,3 +585,4 @@ export const addReaction = async (
   };
 };
 
+ 
