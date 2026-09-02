@@ -4,6 +4,7 @@ import { ConversationModel } from "./conversation.model";
 import { UserModel } from "../user/user.model";
 import { getCache, invalidateUserConversationsCache, setCache } from "../../cache/cache.service";
 import { cacheKeys } from "../../cache/cache.keys";
+import { MessageModel } from "../message/message.model";
 
 
 
@@ -98,7 +99,9 @@ export const getMyConversations = async (
       currentUserId,
     )
   ) {
-    throw new Error("Invalid user ID");
+    throw new Error(
+      "Invalid user ID",
+    );
   }
 
   const cacheKey =
@@ -106,7 +109,10 @@ export const getMyConversations = async (
       currentUserId,
     );
 
+  // ==========================================
   // Redis HIT
+  // ==========================================
+
   const cachedConversations =
     await getCache(cacheKey);
 
@@ -122,13 +128,19 @@ export const getMyConversations = async (
     "Conversations: Redis MISS",
   );
 
-  // Redis MISS → MongoDB
+  const currentUserObjectId =
+    new mongoose.Types.ObjectId(
+      currentUserId,
+    );
+
+  // ==========================================
+  // MongoDB - Get conversations
+  // ==========================================
+
   const conversations =
     await ConversationModel.find({
       participants:
-        new mongoose.Types.ObjectId(
-          currentUserId,
-        ),
+        currentUserObjectId,
     })
       .populate(
         "participants",
@@ -143,19 +155,60 @@ export const getMyConversations = async (
       )
       .sort({
         updatedAt: -1,
-      });
+      })
+      .lean();
 
+  // ==========================================
+  // Add unread count
+  // ==========================================
+
+  const conversationsWithUnreadCount =
+    await Promise.all(
+      conversations.map(
+        async (conversation) => {
+          const unreadCount =
+            await MessageModel.countDocuments({
+              conversationId:
+                conversation._id,
+
+              // Own messages are not unread
+              senderId: {
+                $ne:
+                  currentUserObjectId,
+              },
+
+              // Deleted messages are not unread
+              isDeleted: false,
+
+              // Current user has not read
+              readBy: {
+                $nin: [
+                  currentUserObjectId,
+                ],
+              },
+            });
+
+          return {
+            ...conversation,
+
+            unreadCount,
+          };
+        },
+      ),
+    );
+
+  // ==========================================
   // Save to Redis
+  // ==========================================
+
   await setCache(
     cacheKey,
-    conversations,
+    conversationsWithUnreadCount,
     300,
   );
 
-  return conversations;
+  return conversationsWithUnreadCount;
 };
-
-
 
 
 export const createGroupConversation = async (

@@ -6,6 +6,7 @@ import {
   deleteMessage,
   editMessage,
   getConversationMessages,
+  markMessageAsRead,
 } from "./message.service";
 
 import {
@@ -133,6 +134,58 @@ export const getMessages = async (req: Request, res: Response) => {
 
     const message =
       error instanceof Error ? error.message : "Failed to fetch messages";
+
+    return res.status(400).json({
+      success: false,
+      message,
+    });
+  }
+};
+
+
+export const markMessageAsReadController = async (
+  req: Request,
+  res: Response,
+) => {
+  try {
+    const currentUserId = req.user?.userId;
+
+    if (!currentUserId) {
+      return res.status(401).json({
+        success: false,
+        message: "Unauthorized",
+      });
+    }
+
+    const { id: messageId } = req.params;
+
+    if (!messageId) {
+      return res.status(400).json({
+        success: false,
+        message: "Message ID is required",
+      });
+    }
+
+    const data = await markMessageAsRead(
+      currentUserId,
+      messageId as string,
+    );
+
+    return res.status(200).json({
+      success: true,
+      message: "Message marked as read successfully",
+      data,
+    });
+  } catch (error) {
+    console.error(
+      "Mark message as read error:",
+      error,
+    );
+
+    const message =
+      error instanceof Error
+        ? error.message
+        : "Failed to mark message as read";
 
     return res.status(400).json({
       success: false,

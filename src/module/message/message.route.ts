@@ -7,6 +7,8 @@ import {
   deleteMessageController,
   getMessages,
    
+  markMessageAsReadController,
+   
   sendMessage,
   updateMessage,
 } from "./message.controller";
@@ -34,10 +36,17 @@ messageRouter.get(
 
 
 messageRouter.patch(
+  "/:id/read",
+  authMiddleware,
+  markMessageAsReadController,
+);
+
+messageRouter.patch(
   "/:id",
   authMiddleware,
   updateMessage,
 );
+
 
 
 messageRouter.delete(

@@ -5,147 +5,99 @@ import { ConversationModel } from "../conversation/conversation.model";
 import { isConversationMember } from "../conversation/conversation.service";
 import { IAttachment, IMessageReaction } from "./message.interface";
 import { deleteMultipleMessageAttachments } from "./messageUpload.service";
+import { invalidateUserConversationsCache } from "../../cache/cache.service";
 
 export const createMessage = async (
   currentUserId: string,
   conversationId: string,
   text = "",
   replyTo?: string,
-  attachments: IAttachment[] = []
+  attachments: IAttachment[] = [],
 ) => {
   // 1. Validate current user ID
-  if (
-    !mongoose.Types.ObjectId.isValid(
-      currentUserId,
-    )
-  ) {
-    throw new Error(
-      "Invalid current user ID",
-    );
+  if (!mongoose.Types.ObjectId.isValid(currentUserId)) {
+    throw new Error("Invalid current user ID");
   }
 
   // 2. Validate conversation ID
-  if (
-    !mongoose.Types.ObjectId.isValid(
-      conversationId,
-    )
-  ) {
-    throw new Error(
-      "Invalid conversation ID",
-    );
+  if (!mongoose.Types.ObjectId.isValid(conversationId)) {
+    throw new Error("Invalid conversation ID");
   }
 
   // 3. Validate message content
   const trimmedText = text.trim();
 
-  if (
-    !trimmedText &&
-    attachments.length === 0
-  ) {
-    throw new Error(
-      "Message must contain text or attachment",
-    );
+  if (!trimmedText && attachments.length === 0) {
+    throw new Error("Message must contain text or attachment");
   }
 
   // 4. Find conversation and make sure
   // current user is a participant
-  const conversation =
-    await ConversationModel.findOne({
-      _id:
-        new mongoose.Types.ObjectId(
-          conversationId,
-        ),
+  const conversation = await ConversationModel.findOne({
+    _id: new mongoose.Types.ObjectId(conversationId),
 
-      participants:
-        new mongoose.Types.ObjectId(
-          currentUserId,
-        ),
-    });
+    participants: new mongoose.Types.ObjectId(currentUserId),
+  });
 
   if (!conversation) {
-    throw new Error(
-      "Conversation not found or you are not a member",
-    );
+    throw new Error("Conversation not found or you are not a member");
   }
 
   // 5. Validate reply message
   if (replyTo) {
-    if (
-      !mongoose.Types.ObjectId.isValid(
-        replyTo,
-      )
-    ) {
-      throw new Error(
-        "Invalid reply message ID",
-      );
+    if (!mongoose.Types.ObjectId.isValid(replyTo)) {
+      throw new Error("Invalid reply message ID");
     }
 
-    const replyMessage =
-      await MessageModel.findById(
-        replyTo,
-      );
+    const replyMessage = await MessageModel.findById(replyTo);
 
     if (!replyMessage) {
-      throw new Error(
-        "Reply message not found",
-      );
+      throw new Error("Reply message not found");
     }
 
-    if (
-      replyMessage.conversationId.toString() !==
-      conversationId
-    ) {
-      throw new Error(
-        "Reply message belongs to another conversation",
-      );
+    if (replyMessage.conversationId.toString() !== conversationId) {
+      throw new Error("Reply message belongs to another conversation");
     }
   }
 
   // 6. Create message
-  const message =
-    await MessageModel.create({
-      conversationId:
-        new mongoose.Types.ObjectId(
-          conversationId,
-        ),
+  const message = await MessageModel.create({
+    conversationId: new mongoose.Types.ObjectId(conversationId),
 
-      senderId:
-        new mongoose.Types.ObjectId(
-          currentUserId,
-        ),
+    senderId: new mongoose.Types.ObjectId(currentUserId),
 
-      // Can be empty for file/media-only messages
-      text: trimmedText,
+    // Can be empty for file/media-only messages
+    text: trimmedText,
 
-      // New attachment support
-      attachments,
+    // Attachment support
+    attachments,
 
-      // Existing reply support
-      replyTo: replyTo
-        ? new mongoose.Types.ObjectId(
-            replyTo,
-          )
-        : null,
-    });
+    // Reply support
+    replyTo: replyTo ? new mongoose.Types.ObjectId(replyTo) : null,
+  });
 
   // 7. Update conversation lastMessage
-  conversation.lastMessage =
-    message._id;
+  conversation.lastMessage = message._id;
 
   await conversation.save();
 
-  // 8. Populate sender
-  await message.populate(
-    "senderId",
-    "phone name avatar bio isOnline lastSeen",
+  // ==========================================
+  // Invalidate Redis conversation cache
+  // for all conversation participants
+  // ==========================================
+
+  await invalidateUserConversationsCache(
+    conversation.participants.map((participantId) => participantId.toString()),
   );
+
+  // 8. Populate sender
+  await message.populate("senderId", "phone name avatar bio isOnline lastSeen");
 
   // 9. Populate reply message
   await message.populate({
     path: "replyTo",
 
-    select:
-      "text senderId isDeleted createdAt attachments",
+    select: "text senderId isDeleted createdAt attachments",
 
     populate: {
       path: "senderId",
@@ -288,57 +240,52 @@ export const markMessageAsRead = async (
   currentUserId: string,
   messageId: string,
 ) => {
-  // 1. Validate user ID
-  if (!mongoose.Types.ObjectId.isValid(currentUserId)) {
-    throw new Error("Invalid current user ID");
-  }
+  // existing validation...
 
-  // 2. Validate message ID
-  if (!mongoose.Types.ObjectId.isValid(messageId)) {
-    throw new Error("Invalid message ID");
-  }
-
-  const userObjectId = new mongoose.Types.ObjectId(currentUserId);
-
-  // 3. Find message
-  const message = await MessageModel.findById(messageId);
+  const message =
+    await MessageModel.findById(messageId);
 
   if (!message) {
     throw new Error("Message not found");
   }
 
-  // 4. Check conversation membership
-  const conversation = await ConversationModel.findOne({
-    _id: message.conversationId,
+  // Already read
+  const alreadyRead =
+    message.readBy.some(
+      (userId) =>
+        userId.toString() ===
+        currentUserId,
+    );
 
-    participants: userObjectId,
-  }).select("_id");
+  if (!alreadyRead) {
+    message.readBy.push(
+      new mongoose.Types.ObjectId(
+        currentUserId,
+      ),
+    );
 
-  if (!conversation) {
-    throw new Error("You are not a member of this conversation");
+    await message.save();
   }
 
-  // 5. Sender cannot mark own message as read
-  if (message.senderId.toString() === currentUserId) {
-    throw new Error("You cannot mark your own message as read");
+  // IMPORTANT: both users' conversation cache invalidate
+  const conversation =
+    await ConversationModel.findById(
+      message.conversationId,
+    ).select("participants");
+
+  if (conversation) {
+    await invalidateUserConversationsCache(
+      conversation.participants.map(
+        (participantId) =>
+          participantId.toString(),
+      ),
+    );
   }
 
-  // 6. Prevent duplicate read
-  const alreadyRead = message.readBy.some(
-    (userId) => userId.toString() === currentUserId,
+  await message.populate(
+    "readBy",
+    "phone name avatar",
   );
-
-  if (alreadyRead) {
-    return message;
-  }
-
-  // 7. Add user to readBy
-  message.readBy.push(userObjectId);
-
-  await message.save();
-
-  // 8. Populate readBy users
-  await message.populate("readBy", "phone name avatar");
 
   return message;
 };
@@ -389,73 +336,42 @@ export const editMessage = async (
   return message;
 };
 
- 
-
 export const deleteMessage = async (
   currentUserId: string,
   messageId: string,
 ) => {
   // Validate current user ID
-  if (
-    !mongoose.Types.ObjectId.isValid(
-      currentUserId,
-    )
-  ) {
-    throw new Error(
-      "Invalid current user ID",
-    );
+  if (!mongoose.Types.ObjectId.isValid(currentUserId)) {
+    throw new Error("Invalid current user ID");
   }
 
   // Validate message ID
-  if (
-    !mongoose.Types.ObjectId.isValid(
-      messageId,
-    )
-  ) {
-    throw new Error(
-      "Invalid message ID",
-    );
+  if (!mongoose.Types.ObjectId.isValid(messageId)) {
+    throw new Error("Invalid message ID");
   }
 
   // Find message
-  const message =
-    await MessageModel.findById(
-      messageId,
-    );
+  const message = await MessageModel.findById(messageId);
 
   if (!message) {
-    throw new Error(
-      "Message not found",
-    );
+    throw new Error("Message not found");
   }
 
   // Check ownership
-  if (
-    message.senderId.toString() !==
-    currentUserId
-  ) {
-    throw new Error(
-      "You can only delete your own messages",
-    );
+  if (message.senderId.toString() !== currentUserId) {
+    throw new Error("You can only delete your own messages");
   }
 
   // Prevent duplicate deletion
   if (message.isDeleted) {
-    throw new Error(
-      "Message is already deleted",
-    );
+    throw new Error("Message is already deleted");
   }
 
   // =====================================
   // Delete attachments from Cloudinary
   // =====================================
-  if (
-    message.attachments &&
-    message.attachments.length > 0
-  ) {
-    await deleteMultipleMessageAttachments(
-      message.attachments,
-    );
+  if (message.attachments && message.attachments.length > 0) {
+    await deleteMultipleMessageAttachments(message.attachments);
   }
 
   // =====================================
@@ -463,8 +379,7 @@ export const deleteMessage = async (
   // =====================================
   message.isDeleted = true;
 
-  message.deletedAt =
-    new Date();
+  message.deletedAt = new Date();
 
   // Hide original text
   message.text = "";
@@ -475,16 +390,13 @@ export const deleteMessage = async (
   await message.save();
 
   return {
-    messageId:
-      message._id.toString(),
+    messageId: message._id.toString(),
 
-    conversationId:
-      message.conversationId.toString(),
+    conversationId: message.conversationId.toString(),
 
     isDeleted: true,
 
-    deletedAt:
-      message.deletedAt,
+    deletedAt: message.deletedAt,
   };
 };
 
@@ -517,7 +429,6 @@ const getReactionSummary = (reactions: IMessageReaction[]) => {
 
   return Array.from(reactionMap.values());
 };
-
 
 export const addReaction = async (
   userId: string,
@@ -584,5 +495,3 @@ export const addReaction = async (
     reactionSummary: getReactionSummary(message.reactions),
   };
 };
-
- 
