@@ -106,63 +106,60 @@ The application supports **JWT authentication, direct and group conversations, r
 
 ---
 
-
-# 📊 System Diagrams
-
-## 🏗 System Architecture
-
+# 🏗 System Architecture
 ```mermaid
 flowchart TB
 
-    Client["🖥️ Client Application<br/>React / Next.js"]
+    Client["Client Application<br/>React / Next.js"]
 
-    Client -->|"REST API"| API
-    Client <-->|"WebSocket"| Socket
+    Client -->|REST API| Express
+    Client <-->|WebSocket| Socket
 
-    subgraph Backend["🚀 Chat Application Backend"]
+    Express["Express Server"]
+    Socket["Socket.IO Server"]
 
-        API["Express.js API"]
-        Socket["Socket.IO Server"]
+    Express --> Auth["JWT Authentication"]
+    Socket --> SocketAuth["Socket JWT Authentication"]
 
-        Auth["🔐 JWT Authentication"]
+    Auth --> User["User Module"]
+    Auth --> Conversation["Conversation Module"]
+    Auth --> Message["Message Module"]
+    Auth --> Notification["Notification Module"]
 
-        User["👤 User Module"]
-        Conversation["💬 Conversation Module"]
-        Message["📨 Message Module"]
-        Notification["🔔 Notification Module"]
+    SocketAuth --> Realtime["Real-Time Events"]
 
-        Realtime["⚡ Real-Time Events"]
+    Realtime --> MessageEvents["Message Events"]
+    Realtime --> Typing["Typing Events"]
+    Realtime --> Status["Delivered / Read Status"]
+    Realtime --> Reactions["Like / Reaction Events"]
 
-    end
+    MessageEvents --> Message
 
-    API --> Auth
-    Socket --> Auth
+    Message --> Media["Media Processing"]
 
-    Auth --> User
-    Auth --> Conversation
-    Auth --> Message
-    Auth --> Notification
-
-    Socket --> Realtime
-
-    Realtime --> Message
-    Realtime --> Conversation
-
-    User --> MongoDB[("🍃 MongoDB")]
+    User --> MongoDB
     Conversation --> MongoDB
     Message --> MongoDB
     Notification --> MongoDB
 
-    Conversation <--> Redis[("🔴 Redis")]
-    User <--> Redis
+    Conversation <-->|Cache| Redis
+    User <-->|Online Status| Redis
 
-    User --> Cloudinary["☁️ Cloudinary"]
     Message --> Cloudinary
+    User --> Cloudinary
+    Media --> Cloudinary
 
-    Notification --> FCM["📱 Firebase Cloud Messaging"]
+    Notification --> Push["Push Notification Service"]
+
+    MongoDB["MongoDB"]
+    Redis["Redis"]
+    Cloudinary["Cloudinary"]
+    Push["Firebase Cloud Messaging"]
 ```
 
----
+
+# 📊 System Diagrams
+
 
 ## 🐳 Docker Architecture
 
