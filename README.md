@@ -111,7 +111,7 @@ The application supports **JWT authentication, direct and group conversations, r
 # 🏗 System Architecture
 
 ```mermaid
-flowchart TB
+flowchart LR
 
     Client["Client Application<br/>React / Next.js"]
 
