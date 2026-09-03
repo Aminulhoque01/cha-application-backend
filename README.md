@@ -9,92 +9,131 @@ The project supports authentication, direct and group conversations, real-time m
 ## ✨ Features
 
 * JWT Authentication
-* User Profile Management
-* Avatar Upload with Cloudinary
-* Direct Conversations
-* Group Conversations
-* Group Participant Management
-* Group Admin Management
-* Group Rename
-* Real-Time Messaging
-* Socket.IO Authentication
-* Conversation Room Management
-* Typing Indicator
-* Message Delivery Status
-* Message Read Status
-* Message Pagination
-* Redis Caching
-* MongoDB Database
-* Docker Containerization
-* Docker Compose
-* TypeScript
-* Input Validation
-* Protected API Routes
 
+* User Profile Management
+
+* Avatar Upload with Cloudinary
+
+* Direct Conversations
+
+* Group Conversations
+
+* Group Participant Management
+
+* Group Admin Management
+
+* Group Rename
+
+* Real-Time Messaging
+
+* Socket.IO Authentication
+
+* Conversation Room Management
+
+* Typing Indicator
+
+* Message Delivery Status
+
+* Message Read Status
+
+* Message Pagination
+
+* Message Reply
+
+* Message Edit
+
+* Message Like / Unlike
+
+* Voice Message
+
+* Video Message
+
+* Push Notifications
+
+* Redis Caching
+
+* MongoDB Database
+
+* Cloudinary Media Storage
+
+* Docker Containerization
+
+* Docker Compose
+
+* TypeScript
+
+* Input Validation
+
+* Protected API Routes
 ---
 
 # 🛠 Tech Stack
-
-| Category                | Technology     |
-| ----------------------- | -------------- |
-| Runtime                 | Node.js        |
-| Backend Framework       | Express.js     |
-| Language                | TypeScript     |
-| Database                | MongoDB        |
-| ODM                     | Mongoose       |
-| Cache                   | Redis          |
-| Real-Time Communication | Socket.IO      |
-| Authentication          | JWT            |
-| Password Hashing        | bcrypt         |
-| Image Storage           | Cloudinary     |
-| Containerization        | Docker         |
-| Container Orchestration | Docker Compose |
-
+ Runtime                   | Node.js                 |
+| Backend Framework         | Express.js              |
+| Language                  | TypeScript              |
+| Database                  | MongoDB                 |
+| ODM                       | Mongoose                |
+| Cache                     | Redis                   |
+| Real-Time Communication   | Socket.IO               |
+| Authentication            | JWT                     |
+| Password Hashing          | bcrypt                  |
+| Image Storage              | Cloudinary               |
+| Media Storage              | Cloudinary               |
+| Push Notifications        | Firebase Cloud Messaging |
+| Containerization           | Docker                  |
+| Container Orchestration    | Docker Compose    
 ---
 
 # 🏗 System Architecture
 
-```mermaid
+ ```mermaid
 flowchart TB
+
     Client["Client Application<br/>React / Next.js"]
-    
+
     Client -->|REST API| Express
     Client <-->|WebSocket| Socket
-    
+
     Express["Express Server"]
     Socket["Socket.IO Server"]
 
     Express --> Auth["JWT Authentication"]
+
     Socket --> SocketAuth["Socket JWT Authentication"]
 
-    Auth --> User
-    Auth --> Conversation
-    Auth --> Message
+    Auth --> User["User Module"]
+    Auth --> Conversation["Conversation Module"]
+    Auth --> Message["Message Module"]
+    Auth --> Notification["Notification Module"]
 
     SocketAuth --> Realtime["Real-Time Events"]
 
-    Realtime --> Message
+    Realtime --> MessageEvents["Message Events"]
     Realtime --> Typing["Typing Events"]
     Realtime --> Status["Delivered / Read Status"]
+    Realtime --> Reactions["Like / Reaction Events"]
 
-    User["User Module"]
-    Conversation["Conversation Module"]
-    Message["Message Module"]
+    MessageEvents --> Message
+    Message --> Media["Media Processing"]
 
     User --> MongoDB
     Conversation --> MongoDB
     Message --> MongoDB
+    Notification --> MongoDB
 
     Conversation <-->|Cache| Redis
     User <-->|Online Status| Redis
 
+    Message --> Cloudinary
+    User --> Cloudinary
+    Media --> Cloudinary
+
+    Notification --> Push["Push Notification Service"]
+
     MongoDB["MongoDB"]
     Redis["Redis"]
-
     Cloudinary["Cloudinary"]
-    User --> Cloudinary
-```
-
+    Push["Push Notification Provider"]
 ---
 
 # 🐳 Docker Architecture
@@ -122,23 +161,36 @@ flowchart LR
 
 # 📁 Project Structure
 
-```text
+``text
 src/
+
 │
+
 ├── cache/
+
 │   ├── cache.keys.ts
 │   └── cache.service.ts
+
 │
+
 ├── config/
+
 │   ├── db.ts
 │   ├── env.ts
-│   └── redis.ts
+│   ├── redis.ts
+│   └── cloudinary.ts
+
 │
+
 ├── middleware/
+
 │   ├── auth.middleware.ts
 │   └── upload.middleware.ts
+
 │
+
 ├── module/
+
 │   │
 │   ├── auth/
 │   │   ├── auth.controller.ts
@@ -161,18 +213,29 @@ src/
 │   │   ├── conversation.route.ts
 │   │   └── conversation.service.ts
 │   │
-│   └── message/
-│       ├── message.controller.ts
-│       ├── message.interface.ts
-│       ├── message.model.ts
-│       ├── message.route.ts
-│       └── message.service.ts
+│   ├── message/
+│   │   ├── message.controller.ts
+│   │   ├── message.interface.ts
+│   │   ├── message.model.ts
+│   │   ├── message.route.ts
+│   │   └── message.service.ts
+│   │
+│   └── notification/
+│       ├── notification.controller.ts
+│       ├── notification.interface.ts
+│       ├── notification.model.ts
+│       ├── notification.route.ts
+│       └── notification.service.ts
 │
 ├── socket/
 │   ├── socket.auth.ts
 │   ├── socket.handlers.ts
 │   ├── socket.server.ts
 │   └── socket.types.ts
+│
+├── utils/
+│   ├── cloudinary.ts
+│   └── ...
 │
 ├── app.ts
 └── server.ts
@@ -204,7 +267,56 @@ CLOUDINARY_CLOUD_NAME=your-cloudinary-cloud-name
 CLOUDINARY_API_KEY=your-cloudinary-api-key
 
 CLOUDINARY_API_SECRET=your-cloudinary-api-secret
+
+FCM_PROJECT_ID=your-firebase-project-id
+
+FCM_CLIENT_EMAIL=your-firebase-client-email
+
+FCM_PRIVATE_KEY=your-firebase-private-key
 ```
+
+
+# 🔔 Push Notifications
+
+The application supports push notifications for users who are not actively viewing the conversation.
+
+Push notifications can be triggered for:
+
+* New Message
+* Voice Message
+* Video Message
+* Message Reply
+* Group Message
+* Group Activity
+
+The notification service is separated from the real-time Socket.IO communication layer.
+
+Real-time users receive Socket.IO events, while offline/background users can receive push notifications through the configured push notification provider.
+
+```mermaid
+sequenceDiagram
+
+    participant Sender
+    participant API
+    participant Message
+    participant Notification
+    participant Push
+    participant Recipient
+
+    Sender->>API: Send Message
+    API->>Message: Save Message
+    Message-->>API: Message Created
+
+    API->>Notification: Create Notification
+    Notification->>Push: Send Push Notification
+    Push-->>Recipient: Push Notification
+
+    # 🔔 Notification API
+
+## Register Push Notification Token
+
+```http
+POST /api/v1/notifications/token
 
 > Never commit the `.env` file to GitHub.
 
@@ -1004,22 +1116,8 @@ Docker                 ███████████████████
 
 ---
 
-# 🎯 Future Improvements
-
-* [ ] Message editing
-* [ ] Message deletion
-* [ ] Message reactions
-* [ ] Reply to messages
-* [ ] File and media messages
-* [ ] Voice messages
-* [ ] Push notifications
-* [ ] Unread message count
-* [ ] Socket scaling with Redis Adapter
-* [ ] Rate limiting
-* [ ] Refresh token authentication
-* [ ] Automated testing
-* [ ] CI/CD pipeline
-* [ ] Production deployment
+ 
+ 
 
 ---
 
