@@ -6,6 +6,9 @@ import { isConversationMember } from "../conversation/conversation.service";
 import { IAttachment, IMessageReaction } from "./message.interface";
 import { deleteMultipleMessageAttachments } from "./messageUpload.service";
 import { invalidateUserConversationsCache } from "../../cache/cache.service";
+import { UserModel } from "../user/user.model";
+import { sendPushNotification } from "../notification/notification.service";
+import { IUser } from "../user/user.interface";
 
 export const createMessage = async (
   currentUserId: string,
@@ -105,6 +108,103 @@ export const createMessage = async (
       select: "name avatar",
     },
   });
+
+    // 10. Get recipient IDs
+
+   
+  const recipientIds =
+    conversation.participants
+      .map(
+        (participantId) =>
+          participantId.toString(),
+      )
+      .filter(
+        (participantId) =>
+          participantId !== currentUserId,
+      );
+
+  // 11. Get recipients with push tokens
+  const recipients =
+    await UserModel.find({
+      _id: {
+        $in: recipientIds,
+      },
+
+      "pushTokens.0": {
+        $exists: true,
+      },
+    }).select(
+      "pushTokens",
+    );
+
+  // 12. Collect all FCM tokens
+  const tokens =
+    recipients.flatMap(
+      (user) =>
+        user.pushTokens.map(
+          (item) => item.token,
+        ),
+    );
+
+  // 13. Prepare notification body
+  let notificationBody =
+    trimmedText;
+
+  if (
+    !notificationBody &&
+    attachments.length > 0
+  ) {
+    const firstAttachment =
+      attachments[0];
+
+    switch (
+      firstAttachment.type
+    ) {
+      case "image":
+        notificationBody =
+          "📷 Sent an image";
+        break;
+
+      case "video":
+        notificationBody =
+          "🎥 Sent a video";
+        break;
+
+      case "audio":
+        notificationBody =
+          "🎤 Sent a voice message";
+        break;
+
+      default:
+        notificationBody =
+          "📎 Sent a file";
+    }
+  }
+
+  // 14. Send push notification
+
+  const sender =message.senderId as unknown as IUser;
+
+  if (tokens.length > 0) {
+    void sendPushNotification({
+      tokens,
+
+      title: sender.name,
+
+      body:
+        notificationBody,
+
+      data: {
+        type: "new_message",
+
+        conversationId:
+          conversationId,
+
+        messageId:
+          message._id.toString(),
+      },
+    });
+  }
 
   return message;
 };
