@@ -106,58 +106,6 @@ The application supports **JWT authentication, direct and group conversations, r
 
 ---
 
-# 🏗 System Architecture
-
-```mermaid
-flowchart TB
-
-    Client["Client Application<br/>React / Next.js"]
-
-    Client -->|REST API| Express
-    Client <-->|WebSocket| Socket
-
-    Express["Express Server"]
-    Socket["Socket.IO Server"]
-
-    Express --> Auth["JWT Authentication"]
-    Socket --> SocketAuth["Socket JWT Authentication"]
-
-    Auth --> User["User Module"]
-    Auth --> Conversation["Conversation Module"]
-    Auth --> Message["Message Module"]
-    Auth --> Notification["Notification Module"]
-
-    SocketAuth --> Realtime["Real-Time Events"]
-
-    Realtime --> MessageEvents["Message Events"]
-    Realtime --> Typing["Typing Events"]
-    Realtime --> Status["Delivered / Read Status"]
-    Realtime --> Reactions["Like / Reaction Events"]
-
-    MessageEvents --> Message
-
-    Message --> Media["Media Processing"]
-
-    User --> MongoDB
-    Conversation --> MongoDB
-    Message --> MongoDB
-    Notification --> MongoDB
-
-    Conversation <-->|Cache| Redis
-    User <-->|Online Status| Redis
-
-    Message --> Cloudinary
-    User --> Cloudinary
-    Media --> Cloudinary
-
-    Notification --> Push["Push Notification Service"]
-
-    MongoDB["MongoDB"]
-    Redis["Redis"]
-    Cloudinary["Cloudinary"]
-    Push["Firebase Cloud Messaging"]
-```
-
 
 # 📊 System Diagrams
 
