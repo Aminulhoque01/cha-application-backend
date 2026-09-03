@@ -1,6 +1,32 @@
 import { Schema, model } from "mongoose";
 
-import { IUser } from "./user.interface";
+import {
+  IPushToken,
+  IUser,
+} from "./user.interface";
+
+const pushTokenSchema =
+  new Schema<IPushToken>(
+    {
+      token: {
+        type: String,
+        required: true,
+      },
+
+      device: {
+        type: String,
+        default: "web",
+      },
+
+      createdAt: {
+        type: Date,
+        default: Date.now,
+      },
+    },
+    {
+      _id: false,
+    },
+  );
 
 const userSchema = new Schema<IUser>(
   {
@@ -39,11 +65,26 @@ const userSchema = new Schema<IUser>(
       type: Date,
       default: null,
     },
+
+    // ==========================================
+    // Firebase / Push Notification Tokens
+    // ==========================================
+
+    pushTokens: {
+      type: [pushTokenSchema],
+
+      default: [],
+    },
   },
   {
     timestamps: true,
+
     versionKey: false,
   },
 );
 
-export const UserModel = model<IUser>("User", userSchema);
+export const UserModel =
+  model<IUser>(
+    "User",
+    userSchema,
+  );
