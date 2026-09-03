@@ -1,92 +1,114 @@
-# Real-Time Chat Application Backend
+# 🚀 Real-Time Chat Application Backend
 
-A scalable and real-time chat application backend built with **Node.js, Express, TypeScript, MongoDB, Redis, Socket.IO, and Docker**.
+A scalable and feature-rich **real-time chat application backend** built with **Node.js, Express.js, TypeScript, MongoDB, Redis, Socket.IO, Cloudinary, Firebase Cloud Messaging, and Docker**.
 
-The project supports authentication, direct and group conversations, real-time messaging, typing indicators, message delivery/read status, Redis caching, and containerized deployment.
+The application supports **JWT authentication, direct and group conversations, real-time messaging, typing indicators, delivery/read status, message replies, editing, likes, voice and video messages, push notifications, Redis caching, and containerized deployment**.
 
 ---
 
 ## ✨ Features
 
+### 🔐 Authentication & Security
+
 * JWT Authentication
-
-* User Profile Management
-
-* Avatar Upload with Cloudinary
-
-* Direct Conversations
-
-* Group Conversations
-
-* Group Participant Management
-
-* Group Admin Management
-
-* Group Rename
-
-* Real-Time Messaging
-
-* Socket.IO Authentication
-
-* Conversation Room Management
-
-* Typing Indicator
-
-* Message Delivery Status
-
-* Message Read Status
-
-* Message Pagination
-
-* Message Reply
-
-* Message Edit
-
-* Message Like / Unlike
-
-* Voice Message
-
-* Video Message
-
-* Push Notifications
-
-* Redis Caching
-
-* MongoDB Database
-
-* Cloudinary Media Storage
-
-* Docker Containerization
-
-* Docker Compose
-
-* TypeScript
-
+* Protected API Routes
+* Password Hashing with bcrypt
+* Socket.IO JWT Authentication
+* Conversation Membership Validation
 * Input Validation
 
-* Protected API Routes
+### 👤 User Management
+
+* Get All Users
+* Get User by ID
+* Search Users
+* Update User Profile
+* Avatar Upload
+* Cloudinary Image Storage
+
+### 💬 Conversations
+
+* Direct / One-to-One Conversations
+* Group Conversations
+* Get My Conversations
+* Add Participants
+* Remove Participants
+* Promote Members to Admin
+* Rename Groups
+* Conversation Room Management
+* Redis Conversation Caching
+
+### 📨 Messaging
+
+* Text Messages
+* Real-Time Messaging
+* Image/File Support
+* Voice Messages
+* Video Messages
+* Message Pagination
+* Message Reply
+* Message Edit
+* Message Like / Unlike
+* Delivery Status
+* Read Status
+
+### ⚡ Real-Time Features
+
+* Socket.IO Authentication
+* Join / Leave Conversation Rooms
+* Real-Time Message Events
+* Typing Indicators
+* Delivery Updates
+* Read Updates
+* Online / Offline Status
+
+### 🔔 Notifications
+
+* Push Notification Token Registration
+* New Message Notifications
+* Voice Message Notifications
+* Video Message Notifications
+* Message Reply Notifications
+* Group Message Notifications
+* Group Activity Notifications
+* Firebase Cloud Messaging Support
+
+### 🧠 Infrastructure
+
+* MongoDB Database
+* Mongoose ODM
+* Redis Caching
+* Cloudinary Media Storage
+* Docker
+* Docker Compose
+* TypeScript
+* Environment-based Configuration
+
 ---
 
 # 🛠 Tech Stack
- Runtime                   | Node.js                 |
-| Backend Framework         | Express.js              |
-| Language                  | TypeScript              |
-| Database                  | MongoDB                 |
-| ODM                       | Mongoose                |
-| Cache                     | Redis                   |
-| Real-Time Communication   | Socket.IO               |
-| Authentication            | JWT                     |
-| Password Hashing          | bcrypt                  |
-| Image Storage              | Cloudinary               |
-| Media Storage              | Cloudinary               |
-| Push Notifications        | Firebase Cloud Messaging |
-| Containerization           | Docker                  |
-| Container Orchestration    | Docker Compose    
+
+| Category                | Technology               |
+| ----------------------- | ------------------------ |
+| Runtime                 | Node.js                  |
+| Backend Framework       | Express.js               |
+| Language                | TypeScript               |
+| Database                | MongoDB                  |
+| ODM                     | Mongoose                 |
+| Cache                   | Redis                    |
+| Real-Time Communication | Socket.IO                |
+| Authentication          | JWT                      |
+| Password Hashing        | bcrypt                   |
+| Media Storage           | Cloudinary               |
+| Push Notifications      | Firebase Cloud Messaging |
+| Containerization        | Docker                   |
+| Container Orchestration | Docker Compose           |
+
 ---
 
 # 🏗 System Architecture
 
- ```mermaid
+```mermaid
 flowchart TB
 
     Client["Client Application<br/>React / Next.js"]
@@ -98,7 +120,6 @@ flowchart TB
     Socket["Socket.IO Server"]
 
     Express --> Auth["JWT Authentication"]
-
     Socket --> SocketAuth["Socket JWT Authentication"]
 
     Auth --> User["User Module"]
@@ -114,6 +135,7 @@ flowchart TB
     Realtime --> Reactions["Like / Reaction Events"]
 
     MessageEvents --> Message
+
     Message --> Media["Media Processing"]
 
     User --> MongoDB
@@ -133,14 +155,327 @@ flowchart TB
     MongoDB["MongoDB"]
     Redis["Redis"]
     Cloudinary["Cloudinary"]
-    Push["Push Notification Provider"]
+    Push["Firebase Cloud Messaging"]
+```
+
+
+# 📊 System Diagrams
+
+## 🏗 System Architecture
+
+```mermaid
+flowchart TB
+
+    Client["🖥️ Client Application<br/>React / Next.js"]
+
+    Client -->|"REST API"| API
+    Client <-->|"WebSocket"| Socket
+
+    subgraph Backend["🚀 Chat Application Backend"]
+
+        API["Express.js API"]
+        Socket["Socket.IO Server"]
+
+        Auth["🔐 JWT Authentication"]
+
+        User["👤 User Module"]
+        Conversation["💬 Conversation Module"]
+        Message["📨 Message Module"]
+        Notification["🔔 Notification Module"]
+
+        Realtime["⚡ Real-Time Events"]
+
+    end
+
+    API --> Auth
+    Socket --> Auth
+
+    Auth --> User
+    Auth --> Conversation
+    Auth --> Message
+    Auth --> Notification
+
+    Socket --> Realtime
+
+    Realtime --> Message
+    Realtime --> Conversation
+
+    User --> MongoDB[("🍃 MongoDB")]
+    Conversation --> MongoDB
+    Message --> MongoDB
+    Notification --> MongoDB
+
+    Conversation <--> Redis[("🔴 Redis")]
+    User <--> Redis
+
+    User --> Cloudinary["☁️ Cloudinary"]
+    Message --> Cloudinary
+
+    Notification --> FCM["📱 Firebase Cloud Messaging"]
+```
+
+---
+
+## 🐳 Docker Architecture
+
+```mermaid
+flowchart LR
+
+    Client["🖥️ Client"]
+
+    Client -->|"HTTP + WebSocket<br/>Port 5000"| Backend
+
+    subgraph Docker["🐳 Docker Environment"]
+
+        Backend["🚀 Chat Backend<br/>Node.js + Express + Socket.IO"]
+
+        Mongo[("🍃 MongoDB")]
+        Redis[("🔴 Redis")]
+
+        Backend --> Mongo
+        Backend --> Redis
+
+    end
+
+    Backend --> Cloudinary["☁️ Cloudinary"]
+    Backend --> FCM["📱 Firebase Cloud Messaging"]
+```
+
+---
+
+## 🔄 REST API Request Flow
+
+```mermaid
+sequenceDiagram
+
+    participant Client
+    participant Express
+    participant Auth
+    participant Controller
+    participant Service
+    participant Database
+
+    Client->>Express: HTTP Request
+
+    Express->>Auth: Verify JWT
+
+    alt Valid Token
+
+        Auth-->>Express: Authenticated User
+
+        Express->>Controller: Handle Request
+
+        Controller->>Service: Business Logic
+
+        Service->>Database: Database Query
+
+        Database-->>Service: Result
+
+        Service-->>Controller: Processed Data
+
+        Controller-->>Client: JSON Response
+
+    else Invalid Token
+
+        Auth-->>Client: 401 Unauthorized
+
+    end
+```
+
+---
+
+## ⚡ Real-Time Message Flow
+
+```mermaid
+sequenceDiagram
+
+    participant UserA as 👤 User A
+    participant Socket as ⚡ Socket.IO
+    participant Server as 🚀 Backend
+    participant DB as 🍃 MongoDB
+    participant Redis as 🔴 Redis
+    participant UserB as 👤 User B
+
+    UserA->>Socket: message:send
+
+    Socket->>Server: Validate User
+
+    Server->>DB: Verify Conversation Membership
+
+    Server->>DB: Save Message
+
+    DB-->>Server: Message Created
+
+    Server->>DB: Update lastMessage
+
+    Server->>Redis: Invalidate Conversation Cache
+
+    Server->>Socket: Emit message:new
+
+    Socket-->>UserA: message:new
+    Socket-->>UserB: message:new
+
+    UserB->>Socket: message:delivered
+
+    Socket->>DB: Update deliveredTo
+
+    Socket-->>UserA: message:delivery:update
+
+    UserB->>Socket: message:read
+
+    Socket->>DB: Update readBy
+
+    Socket-->>UserA: message:read:update
+```
+
+---
+
+## ⌨️ Typing Indicator Flow
+
+```mermaid
+sequenceDiagram
+
+    participant UserA as 👤 User A
+    participant Socket as ⚡ Socket.IO
+    participant Room as 💬 Conversation Room
+    participant UserB as 👤 User B
+
+    UserA->>Socket: typing:start
+
+    Socket->>Room: Broadcast Event
+
+    Room-->>UserB: User A is typing...
+
+    UserA->>Socket: typing:stop
+
+    Socket->>Room: Broadcast Event
+
+    Room-->>UserB: Typing Stopped
+```
+
+---
+
+## 🔔 Push Notification Flow
+
+```mermaid
+sequenceDiagram
+
+    participant Sender as 👤 Sender
+    participant Backend as 🚀 Backend
+    participant DB as 🍃 MongoDB
+    participant Notification as 🔔 Notification Service
+    participant FCM as 📱 Firebase Cloud Messaging
+    participant Receiver as 👤 Receiver
+
+    Sender->>Backend: Send Message
+
+    Backend->>DB: Save Message
+
+    DB-->>Backend: Message Created
+
+    Backend->>Notification: Create Notification
+
+    Notification->>FCM: Send Push Notification
+
+    FCM-->>Receiver: Push Notification
+
+    Note over Receiver: App Background / Offline
+```
+
+---
+
+## 🧠 Redis Cache Flow
+
+```mermaid
+sequenceDiagram
+
+    participant Client
+    participant API
+    participant Redis
+    participant MongoDB
+
+    Client->>API: GET /conversations
+
+    API->>Redis: Check Cache
+
+    alt Cache Hit
+
+        Redis-->>API: Cached Conversations
+
+        API-->>Client: Return Cached Data
+
+    else Cache Miss
+
+        Redis-->>API: Cache Not Found
+
+        API->>MongoDB: Fetch Conversations
+
+        MongoDB-->>API: Conversations
+
+        API->>Redis: Store Cache
+
+        API-->>Client: Return Data
+
+    end
+```
+
+---
+
+## 💬 Conversation Room Flow
+
+```mermaid
+flowchart LR
+
+    User["👤 User"]
+
+    User -->|"conversation:join"| Socket["⚡ Socket.IO"]
+
+    Socket -->|"Verify JWT"| Auth["🔐 Authentication"]
+
+    Auth -->|"Verify Membership"| Conversation["💬 Conversation"]
+
+    Conversation -->|"Join Room"| Room["🏠 Conversation Room"]
+
+    Room -->|"Receive Events"| User
+
+    User -->|"conversation:leave"| Socket
+
+    Socket -->|"Leave Room"| Room
+```
+
+---
+
+## 📦 Message Lifecycle
+
+```mermaid
+stateDiagram-v2
+
+    [*] --> Created
+
+    Created --> Delivered
+
+    Delivered --> Read
+
+    Created --> Edited
+
+    Edited --> Delivered
+
+    Delivered --> Liked
+
+    Liked --> Read
+
+    Read --> [*]
+```
+
+
 ---
 
 # 🐳 Docker Architecture
 
 ```mermaid
 flowchart LR
-    Client["Client"]
+
+    Client["Client Application"]
 
     Client -->|"Port 5000"| App
 
@@ -155,42 +490,31 @@ flowchart LR
     Redis["Redis Container"]
 
     App --> Cloudinary["Cloudinary"]
+    App --> FCM["Firebase Cloud Messaging"]
 ```
 
 ---
 
 # 📁 Project Structure
 
-``text
+```text
 src/
-
 │
-
 ├── cache/
-
 │   ├── cache.keys.ts
 │   └── cache.service.ts
-
 │
-
 ├── config/
-
+│   ├── cloudinary.ts
 │   ├── db.ts
 │   ├── env.ts
-│   ├── redis.ts
-│   └── cloudinary.ts
-
+│   └── redis.ts
 │
-
 ├── middleware/
-
 │   ├── auth.middleware.ts
 │   └── upload.middleware.ts
-
 │
-
 ├── module/
-
 │   │
 │   ├── auth/
 │   │   ├── auth.controller.ts
@@ -245,11 +569,10 @@ src/
 
 # 🔐 Environment Variables
 
-Create a `.env` file:
+Create a `.env` file in the project root:
 
 ```env
 PORT=5000
-
 NODE_ENV=development
 
 MONGO_URI=mongodb://localhost:27017/chat_app
@@ -257,68 +580,20 @@ MONGO_URI=mongodb://localhost:27017/chat_app
 REDIS_URL=redis://localhost:6379
 
 JWT_SECRET=your-super-secret-key
-
 JWT_EXPIRES_IN=7d
 
 CLIENT_URL=http://localhost:3000
 
 CLOUDINARY_CLOUD_NAME=your-cloudinary-cloud-name
-
 CLOUDINARY_API_KEY=your-cloudinary-api-key
-
 CLOUDINARY_API_SECRET=your-cloudinary-api-secret
 
 FCM_PROJECT_ID=your-firebase-project-id
-
 FCM_CLIENT_EMAIL=your-firebase-client-email
-
 FCM_PRIVATE_KEY=your-firebase-private-key
 ```
 
-
-# 🔔 Push Notifications
-
-The application supports push notifications for users who are not actively viewing the conversation.
-
-Push notifications can be triggered for:
-
-* New Message
-* Voice Message
-* Video Message
-* Message Reply
-* Group Message
-* Group Activity
-
-The notification service is separated from the real-time Socket.IO communication layer.
-
-Real-time users receive Socket.IO events, while offline/background users can receive push notifications through the configured push notification provider.
-
-```mermaid
-sequenceDiagram
-
-    participant Sender
-    participant API
-    participant Message
-    participant Notification
-    participant Push
-    participant Recipient
-
-    Sender->>API: Send Message
-    API->>Message: Save Message
-    Message-->>API: Message Created
-
-    API->>Notification: Create Notification
-    Notification->>Push: Send Push Notification
-    Push-->>Recipient: Push Notification
-
-    # 🔔 Notification API
-
-## Register Push Notification Token
-
-```http
-POST /api/v1/notifications/token
-
-> Never commit the `.env` file to GitHub.
+> ⚠️ Never commit your `.env` file or Firebase credentials to GitHub.
 
 ---
 
@@ -344,13 +619,19 @@ npm install
 
 ## 4. Configure Environment Variables
 
-Create:
+Create a `.env` file:
 
 ```text
 .env
 ```
 
-Then configure MongoDB, Redis, JWT, and Cloudinary credentials.
+Then configure:
+
+* MongoDB
+* Redis
+* JWT
+* Cloudinary
+* Firebase Cloud Messaging
 
 ## 5. Start Development Server
 
@@ -410,17 +691,9 @@ docker-compose up -d --build
 
 ---
 
-# 🧠 Docker Services
+# 🧠 Docker Service Configuration
 
-```text
-chat-backend
-      │
-      ├──────────► MongoDB
-      │
-      └──────────► Redis
-```
-
-The backend connects to Docker services using:
+Inside Docker, services communicate using service names.
 
 ```env
 MONGO_URI=mongodb://mongo:27017/chat_app
@@ -434,7 +707,12 @@ Inside Docker, do not use:
 localhost
 ```
 
-for MongoDB or Redis container connections.
+Use the Docker service names instead:
+
+```text
+mongo
+redis
+```
 
 ---
 
@@ -442,6 +720,7 @@ for MongoDB or Redis container connections.
 
 ```mermaid
 sequenceDiagram
+
     participant Client
     participant Express
     participant Auth
@@ -462,7 +741,7 @@ sequenceDiagram
 
 # 🔑 Authentication
 
-The protected routes require a JWT token.
+Protected routes require a JWT access token.
 
 ```http
 Authorization: Bearer YOUR_ACCESS_TOKEN
@@ -506,6 +785,8 @@ Example body:
 GET /api/v1/conversations
 ```
 
+The conversation list uses Redis caching.
+
 ---
 
 ## Create Group Conversation
@@ -514,7 +795,7 @@ GET /api/v1/conversations
 POST /api/v1/conversations/group
 ```
 
-Example:
+Example body:
 
 ```json
 {
@@ -595,6 +876,16 @@ Example:
 }
 ```
 
+The messaging system supports:
+
+* Text Messages
+* Media Messages
+* Voice Messages
+* Video Messages
+* Message Replies
+* Message Editing
+* Message Likes
+
 ---
 
 ## Get Conversation Messages
@@ -603,23 +894,17 @@ Example:
 GET /api/v1/messages/conversation/:id?page=1&limit=30
 ```
 
-Messages are returned in:
+Messages are returned to the chat UI in:
 
 ```text
 Oldest → Newest
 ```
 
-The database query uses:
-
-```text
-Newest → Oldest
-```
-
-and messages are reversed before returning them to the chat UI.
+The database can fetch messages in reverse chronological order and return them in the correct display order for the chat interface.
 
 ---
 
-# 📄 Pagination
+# 📄 Message Pagination
 
 Example:
 
@@ -627,7 +912,7 @@ Example:
 GET /api/v1/messages/conversation/CONVERSATION_ID?page=1&limit=30
 ```
 
-Response includes:
+Pagination structure:
 
 ```json
 {
@@ -652,14 +937,11 @@ The client connects using JWT authentication.
 ```ts
 import { io } from "socket.io-client";
 
-const socket = io(
-  "http://localhost:5000",
-  {
-    auth: {
-      token: "YOUR_JWT_TOKEN"
-    }
+const socket = io("http://localhost:5000", {
+  auth: {
+    token: "YOUR_JWT_TOKEN"
   }
-);
+});
 ```
 
 ---
@@ -668,6 +950,7 @@ const socket = io(
 
 ```mermaid
 sequenceDiagram
+
     participant Client
     participant Socket
     participant Auth
@@ -690,52 +973,36 @@ sequenceDiagram
 
 ## Join Conversation
 
-Client:
-
 ```ts
-socket.emit(
-  "conversation:join",
-  {
-    conversationId
-  }
-);
+socket.emit("conversation:join", {
+  conversationId
+});
 ```
 
 Server response:
 
 ```ts
-socket.on(
-  "conversation:joined",
-  (data) => {
-    console.log(data);
-  }
-);
+socket.on("conversation:joined", (data) => {
+  console.log(data);
+});
 ```
 
 ---
 
 ## Leave Conversation
 
-Client:
-
 ```ts
-socket.emit(
-  "conversation:leave",
-  {
-    conversationId
-  }
-);
+socket.emit("conversation:leave", {
+  conversationId
+});
 ```
 
 Server response:
 
 ```ts
-socket.on(
-  "conversation:left",
-  (data) => {
-    console.log(data);
-  }
-);
+socket.on("conversation:left", (data) => {
+  console.log(data);
+});
 ```
 
 ---
@@ -744,6 +1011,7 @@ socket.on(
 
 ```mermaid
 sequenceDiagram
+
     participant UserA
     participant Socket
     participant Database
@@ -753,9 +1021,7 @@ sequenceDiagram
     UserA->>Socket: message:send
     Socket->>Database: Create Message
     Database-->>Socket: Created Message
-
     Socket->>Room: Broadcast message:new
-
     Room-->>UserA: message:new
     Room-->>UserB: message:new
 ```
@@ -764,27 +1030,21 @@ sequenceDiagram
 
 # 📨 Send Message Event
 
-Client:
+## Send
 
 ```ts
-socket.emit(
-  "message:send",
-  {
-    conversationId,
-    text: "Hello from Socket.IO"
-  }
-);
+socket.emit("message:send", {
+  conversationId,
+  text: "Hello from Socket.IO"
+});
 ```
 
-Receive:
+## Receive
 
 ```ts
-socket.on(
-  "message:new",
-  (message) => {
-    console.log(message);
-  }
-);
+socket.on("message:new", (message) => {
+  console.log(message);
+});
 ```
 
 ---
@@ -794,67 +1054,33 @@ socket.on(
 ## Start Typing
 
 ```ts
-socket.emit(
-  "typing:start",
-  {
-    conversationId
-  }
-);
+socket.emit("typing:start", {
+  conversationId
+});
 ```
 
 Receive:
 
 ```ts
-socket.on(
-  "typing:start",
-  (data) => {
-    console.log(data);
-  }
-);
+socket.on("typing:start", (data) => {
+  console.log(data);
+});
 ```
-
----
 
 ## Stop Typing
 
 ```ts
-socket.emit(
-  "typing:stop",
-  {
-    conversationId
-  }
-);
+socket.emit("typing:stop", {
+  conversationId
+});
 ```
 
 Receive:
 
 ```ts
-socket.on(
-  "typing:stop",
-  (data) => {
-    console.log(data);
-  }
-);
-```
-
----
-
-# ⌨️ Typing Flow
-
-```mermaid
-sequenceDiagram
-    participant UserA
-    participant Socket
-    participant Room
-    participant UserB
-
-    UserA->>Socket: typing:start
-    Socket->>Room: Broadcast typing:start
-    Room-->>UserB: User A is typing
-
-    UserA->>Socket: typing:stop
-    Socket->>Room: Broadcast typing:stop
-    Room-->>UserB: User A stopped typing
+socket.on("typing:stop", (data) => {
+  console.log(data);
+});
 ```
 
 ---
@@ -864,23 +1090,17 @@ sequenceDiagram
 When another participant receives a message:
 
 ```ts
-socket.emit(
-  "message:delivered",
-  {
-    messageId
-  }
-);
+socket.emit("message:delivered", {
+  messageId
+});
 ```
 
-Delivery update:
+The sender receives:
 
 ```ts
-socket.on(
-  "message:delivery:update",
-  (data) => {
-    console.log(data);
-  }
-);
+socket.on("message:delivery:update", (data) => {
+  console.log(data);
+});
 ```
 
 ---
@@ -890,31 +1110,26 @@ socket.on(
 When the recipient reads a message:
 
 ```ts
-socket.emit(
-  "message:read",
-  {
-    messageId
-  }
-);
+socket.emit("message:read", {
+  messageId
+});
 ```
 
-Read update:
+The sender receives:
 
 ```ts
-socket.on(
-  "message:read:update",
-  (data) => {
-    console.log(data);
-  }
-);
+socket.on("message:read:update", (data) => {
+  console.log(data);
+});
 ```
 
 ---
 
-# 📬 Delivery and Read Flow
+# 📬 Delivery & Read Flow
 
 ```mermaid
 sequenceDiagram
+
     participant Sender
     participant Socket
     participant Recipient
@@ -923,6 +1138,7 @@ sequenceDiagram
     Sender->>Socket: message:send
     Socket->>DB: Save Message
     DB-->>Socket: Message Created
+
     Socket-->>Recipient: message:new
 
     Recipient->>Socket: message:delivered
@@ -942,18 +1158,19 @@ The conversation list uses Redis caching.
 
 ```mermaid
 sequenceDiagram
+
     participant Client
     participant API
     participant Redis
     participant MongoDB
 
     Client->>API: GET Conversations
-
     API->>Redis: Check Cache
 
     alt Cache Hit
         Redis-->>API: Cached Conversations
         API-->>Client: Response
+
     else Cache Miss
         Redis-->>API: No Cache
         API->>MongoDB: Fetch Conversations
@@ -963,13 +1180,13 @@ sequenceDiagram
     end
 ```
 
-Cache is invalidated when conversation data changes.
+The cache is invalidated whenever relevant conversation data changes.
 
 ---
 
-# 🟢 User Online/Offline Status
+# 🟢 User Online / Offline Status
 
-When a socket connects:
+## When a Socket Connects
 
 ```text
 Socket Connect
@@ -981,7 +1198,7 @@ Extract User ID
 Set User Online
 ```
 
-When a socket disconnects:
+## When a Socket Disconnects
 
 ```text
 Socket Disconnect
@@ -990,6 +1207,53 @@ Set User Offline
       ↓
 Update Last Seen
 ```
+
+---
+
+# 🔔 Push Notifications
+
+The application supports push notifications for users who are not actively viewing a conversation.
+
+Notifications can be triggered for:
+
+* New Messages
+* Voice Messages
+* Video Messages
+* Message Replies
+* Group Messages
+* Group Activities
+
+The notification system is separated from the real-time Socket.IO communication layer.
+
+* Active users can receive real-time Socket.IO events.
+* Background or offline users can receive push notifications.
+
+```mermaid
+sequenceDiagram
+
+    participant Sender
+    participant API
+    participant Message
+    participant Notification
+    participant Push
+    participant Recipient
+
+    Sender->>API: Send Message
+    API->>Message: Save Message
+    Message-->>API: Message Created
+    API->>Notification: Create Notification
+    Notification->>Push: Send Push Notification
+    Push-->>Recipient: Push Notification
+```
+
+## Register Push Notification Token
+
+```http
+POST /api/v1/notifications/token
+```
+
+
+
 
 ---
 
@@ -1023,7 +1287,7 @@ npm start
 
 # 🧪 Socket Testing
 
-The project can be tested using separate Socket.IO client scripts.
+The real-time system can be tested using separate Socket.IO client scripts.
 
 Example:
 
@@ -1039,11 +1303,11 @@ npx tsx socket-test-user-b.ts
 
 This can be used to test:
 
-* Conversation joining
-* Real-time messages
-* Typing events
-* Delivery status
-* Read status
+* Conversation Joining
+* Real-Time Messages
+* Typing Events
+* Delivery Status
+* Read Status
 
 ---
 
@@ -1101,23 +1365,24 @@ flowchart TD
 # 📊 Project Status
 
 ```text
-Authentication         ████████████████████ 100%
-User Management        ████████████████████ 100%
-Direct Conversation    ████████████████████ 100%
-Group Conversation     ████████████████████ 100%
-Messaging              ████████████████████ 100%
-Real-Time Messaging    ████████████████████ 100%
-Typing Indicator       ████████████████████ 100%
-Delivery Status        ████████████████████ 100%
-Read Status            ████████████████████ 100%
-Redis Cache            ████████████████████ 100%
-Docker                 ████████████████████ 100%
+Authentication          ████████████████████ 100%
+User Management         ████████████████████ 100%
+Direct Conversation     ████████████████████ 100%
+Group Conversation      ████████████████████ 100%
+Messaging               ████████████████████ 100%
+Real-Time Messaging     ████████████████████ 100%
+Typing Indicator        ████████████████████ 100%
+Delivery Status         ████████████████████ 100%
+Read Status             ████████████████████ 100%
+Message Reply           ████████████████████ 100%
+Message Edit            ████████████████████ 100%
+Message Like            ████████████████████ 100%
+Voice Message           ████████████████████ 100%
+Video Message           ████████████████████ 100%
+Push Notifications      ████████████████████ 100%
+Redis Cache             ████████████████████ 100%
+Docker                  ████████████████████ 100%
 ```
-
----
-
- 
- 
 
 ---
 
