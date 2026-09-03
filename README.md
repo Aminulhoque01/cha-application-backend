@@ -106,7 +106,10 @@ The application supports **JWT authentication, direct and group conversations, r
 
 ---
 
+# 📊 System Diagrams
+
 # 🏗 System Architecture
+
 ```mermaid
 flowchart TB
 
@@ -156,9 +159,6 @@ flowchart TB
     Cloudinary["Cloudinary"]
     Push["Firebase Cloud Messaging"]
 ```
-
-
-# 📊 System Diagrams
 
 
 ## 🐳 Docker Architecture
@@ -271,6 +271,7 @@ sequenceDiagram
     Socket->>DB: Update readBy
 
     Socket-->>UserA: message:read:update
+    
 ```
 
 ---
